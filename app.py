@@ -5,25 +5,7 @@ import plotly.express as px
 
 # --- CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Copiloto Financeiro IA", page_icon="💰", layout="wide")
-# --- IDENTIDADE VISUAL CUSTOMIZADA ---
-st.markdown("""
-    <style>
-        /* Esconder a marca do Streamlit */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        
-        /* Deixar os botões mais arredondados e elegantes */
-        .stButton>button {
-            border-radius: 8px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        .stButton>button:hover {
-            transform: scale(1.02);
-        }
-    </style>
-""", unsafe_allow_html=True)
+
 API_URL = "https://copiloto-backend-api.onrender.com"
 
 st.title("🤖 Copiloto Financeiro IA")
