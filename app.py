@@ -289,27 +289,44 @@ components.html("""
     function fecharSidebar() {
         var sidebar = doc.querySelector('[data-testid="stSidebar"]');
         if (!sidebar) return;
-        // Tenta o botão nativo escondido primeiro (método mais limpo)
-        var nativo = sidebar.querySelector('[data-testid="stSidebarCollapseButton"] button')
-                  || sidebar.querySelector('button[aria-label*="Close"]')
-                  || sidebar.querySelector('button[aria-label*="Collapse"]');
-        if (nativo) { nativo.click(); return; }
+        // Mostra o nativo temporariamente, clica, e esconde de novo
+        var wrapper = sidebar.querySelector('[data-testid="stSidebarCollapseButton"]');
+        if (wrapper) {
+            wrapper.style.display = 'flex';
+            var btn = wrapper.querySelector('button');
+            if (btn) {
+                btn.click();
+                setTimeout(function(){ wrapper.style.display = 'none'; }, 100);
+                return;
+            }
+            wrapper.style.display = 'none';
+        }
         // Fallback manual
         sidebar.setAttribute('aria-expanded', 'false');
         sidebar.style.transform = 'translateX(-100%)';
     }
 
     function abrirSidebar() {
-        // Tenta o botão nativo escondido primeiro
-        var nativo = doc.querySelector('[data-testid="stSidebarCollapsedControl"] button');
-        if (nativo) { nativo.click(); return; }
         var sidebar = doc.querySelector('[data-testid="stSidebar"]');
-        if (sidebar) {
-            sidebar.setAttribute('aria-expanded', 'true');
-            sidebar.style.transform = 'none';
-            sidebar.style.visibility = 'visible';
-            sidebar.style.marginLeft = '0';
+        if (!sidebar) return;
+        // Mostra o nativo escondido temporariamente, clica, e esconde de novo
+        var nativo = doc.querySelector('[data-testid="stSidebarCollapsedControl"]');
+        if (nativo) {
+            nativo.style.display = 'flex';
+            var btn = nativo.querySelector('button');
+            if (btn) {
+                btn.click();
+                setTimeout(function(){ nativo.style.display = 'none'; }, 100);
+                return;
+            }
+            nativo.style.display = 'none';
         }
+        // Fallback: manipula a DOM diretamente
+        sidebar.setAttribute('aria-expanded', 'true');
+        sidebar.style.transform = 'none';
+        sidebar.style.visibility = 'visible';
+        sidebar.style.marginLeft = '0';
+        sidebar.style.width = '';
     }
 
     function criarBotoes() {
