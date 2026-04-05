@@ -526,7 +526,10 @@ try:
     req_contas = requests.get(f"{API_URL}/contas/{USUARIO_ID}")
     if req_contas.status_code == 200:
         contas = req_contas.json()
-        opcoes_contas = {f"{c['nome']} ({c['tipo']})": c['id'] for c in contas}
+        def _rotulo_conta(c):
+            icone = "💳" if c.get("modalidade") == "cartao_credito" else "🏦"
+            return f"{icone} {c['nome']} ({c['tipo']})"
+        opcoes_contas = {_rotulo_conta(c): c['id'] for c in contas}
         nomes_contas = list(opcoes_contas.keys())
         id_para_nome = {v: k for k, v in opcoes_contas.items()}
 except:
@@ -886,34 +889,105 @@ with aba_extrato:
 # ==========================================
 with aba_contas:
     st.markdown("### 🏦 Suas contas")
-    st.caption("Onde você guarda o dinheiro — da casa e do negócio.")
+    st.caption("Onde você guarda o dinheiro — da casa e do negócio. Inclui cartões de crédito.")
 
     with st.container(border=True):
         st.markdown("#### ➕ Adicionar conta")
+
+        # Seletor de modalidade FORA do form — precisa ser reativo
+        # (o form só renderiza campos de cartão quando o select muda)
+        modalidade_label = st.radio(
+            "Que tipo de conta?",
+            ["🏦 Conta corrente / débito / Pix", "💳 Cartão de crédito"],
+            horizontal=True,
+            key="nova_conta_modalidade",
+        )
+        eh_cartao = modalidade_label.startswith("💳")
+
         with st.form("form_nova_conta", clear_on_submit=True):
             c1, c2, c3 = st.columns(3)
-            nome_conta  = c1.text_input("Apelido", placeholder="Ex: Nubank do negócio")
+            nome_conta = c1.text_input(
+                "Apelido",
+                placeholder="Ex: Nubank Black" if eh_cartao else "Ex: Nubank do negócio",
+            )
             banco_conta = c2.text_input("Banco", placeholder="Ex: Nubank")
             mapa_fin = {"🏢 Negócio": "PJ", "🏠 Casa": "PF"}
             tipo_conta_label = c3.selectbox("Pra quê?", ["🏢 Negócio", "🏠 Casa"])
             tipo_conta = mapa_fin[tipo_conta_label]
+
+            # Campos condicionais de cartão
+            dia_fech = None
+            dia_venc = None
+            limite_cartao = None
+            if eh_cartao:
+                st.caption("Informações do cartão — olha no app do banco, na tela da fatura.")
+                cc1, cc2, cc3 = st.columns(3)
+                dia_fech = cc1.number_input(
+                    "Fecha no dia", min_value=1, max_value=31, value=25, step=1,
+                    help="Dia em que o cartão fecha a fatura (fim do ciclo de compras).",
+                )
+                dia_venc = cc2.number_input(
+                    "Vence no dia", min_value=1, max_value=31, value=5, step=1,
+                    help="Dia em que a fatura precisa ser paga.",
+                )
+                limite_cartao = cc3.number_input(
+                    "Limite (opcional)", min_value=0.0, step=100.0, value=0.0,
+                    help="Só pra referência — não é usado em cálculos ainda.",
+                )
+
             if st.form_submit_button("Salvar conta", type="primary"):
-                if nome_conta and banco_conta:
-                    payload = {"nome": nome_conta, "banco": banco_conta, "tipo": tipo_conta, "usuario_id": USUARIO_ID}
+                if not (nome_conta and banco_conta):
+                    st.warning("Preenche apelido e banco.")
+                else:
+                    payload = {
+                        "nome": nome_conta,
+                        "banco": banco_conta,
+                        "tipo": tipo_conta,
+                        "usuario_id": USUARIO_ID,
+                        "modalidade": "cartao_credito" if eh_cartao else "corrente",
+                    }
+                    if eh_cartao:
+                        payload["dia_fechamento"] = int(dia_fech)
+                        payload["dia_vencimento"] = int(dia_venc)
+                        if limite_cartao and limite_cartao > 0:
+                            payload["limite"] = float(limite_cartao)
+
                     res = requests.post(f"{API_URL}/contas/", json=payload)
                     if res.status_code == 200:
                         st.success("Pronto, cadastrada.")
                         st.rerun()
-                else:
-                    st.warning("Preenche apelido e banco.")
+                    else:
+                        try:
+                            detail = res.json().get("detail", "erro desconhecido")
+                        except Exception:
+                            detail = f"erro {res.status_code}"
+                        st.error(f"Não consegui salvar: {detail}")
 
     st.divider()
     st.markdown("#### Contas que o Guido conhece")
     if contas:
-        df_contas = pd.DataFrame(contas)[['id', 'nome', 'banco', 'tipo']].copy()
-        df_contas['tipo'] = df_contas['tipo'].map({'PJ': '🏢 Negócio', 'PF': '🏠 Casa'}).fillna(df_contas['tipo'])
-        df_contas = df_contas.rename(columns={'nome': 'apelido', 'tipo': 'pra quê'})
-        st.dataframe(df_contas, use_container_width=True, hide_index=True)
+        df_contas = pd.DataFrame(contas).copy()
+        # Campos novos podem não existir em contas antigas — preenche defaults
+        for col, default in [("modalidade", "corrente"), ("dia_fechamento", None), ("dia_vencimento", None)]:
+            if col not in df_contas.columns:
+                df_contas[col] = default
+
+        def _render_modalidade(row):
+            if row.get("modalidade") == "cartao_credito":
+                f, v = row.get("dia_fechamento"), row.get("dia_vencimento")
+                if f and v:
+                    return f"💳 Cartão (fecha {int(f)}, vence {int(v)})"
+                return "💳 Cartão"
+            return "🏦 Corrente"
+
+        df_contas["como"] = df_contas.apply(_render_modalidade, axis=1)
+        df_contas["tipo"] = df_contas["tipo"].map({"PJ": "🏢 Negócio", "PF": "🏠 Casa"}).fillna(df_contas["tipo"])
+        df_contas = df_contas.rename(columns={"nome": "apelido", "tipo": "pra quê"})
+        st.dataframe(
+            df_contas[["id", "apelido", "banco", "pra quê", "como"]],
+            use_container_width=True,
+            hide_index=True,
+        )
     else:
         st.info("Nenhuma conta cadastrada ainda.")
 

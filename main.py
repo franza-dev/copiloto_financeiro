@@ -4,6 +4,7 @@ from sqlalchemy import func, text
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, date
+from calendar import monthrange
 import hashlib
 import shutil
 import os
@@ -22,12 +23,100 @@ def verificar_senha(senha: str, hash_salvo: str) -> bool:
 # --- INICIALIZAÇÃO DO BANCO ---
 models.Base.metadata.create_all(bind=database.engine)
 
-# Migração rápida para colunas essenciais
+# Migrações idempotentes — cada ALTER fica envolvido num try/except
+# porque PostgreSQL não tem `ADD COLUMN IF NOT EXISTS` em todas as versões.
+_MIGRACOES = [
+    # Fase 0 (legado)
+    "ALTER TABLE usuarios ADD COLUMN senha_hash VARCHAR",
+    # Fase 1 — cartão de crédito (contas)
+    "ALTER TABLE contas ADD COLUMN modalidade VARCHAR DEFAULT 'corrente'",
+    "ALTER TABLE contas ADD COLUMN dia_fechamento INTEGER",
+    "ALTER TABLE contas ADD COLUMN dia_vencimento INTEGER",
+    "ALTER TABLE contas ADD COLUMN limite FLOAT",
+    # Fase 1 — datas competência/caixa + transferências (transações)
+    "ALTER TABLE transacoes ADD COLUMN data_caixa VARCHAR",
+    "ALTER TABLE transacoes ADD COLUMN tx_transferencia_id INTEGER",
+]
+with database.engine.connect() as _conn:
+    for _sql in _MIGRACOES:
+        try:
+            _conn.execute(text(_sql))
+            _conn.commit()
+        except Exception:
+            _conn.rollback()  # coluna já existe, segue a vida
+
+# Backfill único: preenche `data_caixa` nas transações antigas com o valor de `data`
+# (conta corrente: competência == caixa). Só roda em linhas onde data_caixa está NULL.
 with database.engine.connect() as _conn:
     try:
-        _conn.execute(text("ALTER TABLE usuarios ADD COLUMN senha_hash VARCHAR"))
+        _conn.execute(text("UPDATE transacoes SET data_caixa = data WHERE data_caixa IS NULL"))
         _conn.commit()
-    except: pass # Já existe
+    except Exception:
+        _conn.rollback()
+
+# ==========================================
+# CARTÃO DE CRÉDITO — cálculo de data de caixa
+# ==========================================
+def calcular_data_caixa(data_compra_iso: str, dia_fechamento: int, dia_vencimento: int) -> str:
+    """Dada a data de uma compra no cartão e os dias de fechamento/vencimento,
+    retorna a data em que o dinheiro vai sair da conta corrente (ISO YYYY-MM-DD).
+
+    Regra:
+      1. Encontra o próximo fechamento >= data da compra.
+      2. A data de caixa é o próximo dia_vencimento após esse fechamento.
+      3. Se o dia de vencimento não existe no mês destino (ex: 31 em fevereiro),
+         usa o último dia disponível.
+    """
+    try:
+        d = date.fromisoformat(data_compra_iso[:10])
+    except ValueError:
+        # Data em formato inesperado — devolve ela mesma pra não quebrar o fluxo
+        return data_compra_iso
+
+    # Passo 1: encontrar o mês do próximo fechamento >= d
+    if d.day <= dia_fechamento:
+        ano_f, mes_f = d.year, d.month
+    else:
+        if d.month == 12:
+            ano_f, mes_f = d.year + 1, 1
+        else:
+            ano_f, mes_f = d.year, d.month + 1
+
+    # Passo 2: escolher o mês do vencimento
+    # Se vencimento > fechamento no mesmo mês, vence no próprio mês do fechamento.
+    # Caso contrário (padrão dos cartões brasileiros), vence no mês seguinte.
+    if dia_vencimento > dia_fechamento:
+        ano_v, mes_v = ano_f, mes_f
+    else:
+        if mes_f == 12:
+            ano_v, mes_v = ano_f + 1, 1
+        else:
+            ano_v, mes_v = ano_f, mes_f + 1
+
+    # Passo 3: clampear o dia de vencimento se ultrapassar o último dia do mês
+    ultimo_dia = monthrange(ano_v, mes_v)[1]
+    dia_v = min(dia_vencimento, ultimo_dia)
+
+    return date(ano_v, mes_v, dia_v).isoformat()
+
+
+def resolver_data_caixa(db: Session, conta_id: Optional[int], data_competencia: str) -> str:
+    """Dada uma conta e uma data de competência, retorna a data de caixa correta.
+    Conta corrente (ou conta não encontrada) → data_caixa == data_competencia.
+    Cartão de crédito → data_caixa calculada pelo fechamento/vencimento."""
+    if not conta_id or not data_competencia:
+        return data_competencia or ""
+
+    conta = db.query(models.ContaBancaria).filter(models.ContaBancaria.id == conta_id).first()
+    if not conta or conta.modalidade != "cartao_credito":
+        return data_competencia
+
+    if not conta.dia_fechamento or not conta.dia_vencimento:
+        # Cartão mal configurado — degrada pra conta corrente
+        return data_competencia
+
+    return calcular_data_caixa(data_competencia, conta.dia_fechamento, conta.dia_vencimento)
+
 
 app = FastAPI(
     title="Guido API",
@@ -62,8 +151,12 @@ class LoteTransacoes(BaseModel):
 class ContaCreate(BaseModel):
     nome: str
     banco: str
-    tipo: str
+    tipo: str                              # PF | PJ
     usuario_id: int
+    modalidade: str = "corrente"           # corrente | cartao_credito
+    dia_fechamento: Optional[int] = None   # obrigatório se modalidade=cartao_credito
+    dia_vencimento: Optional[int] = None   # idem
+    limite: Optional[float] = None         # opcional, só informativo por enquanto
 
 class RegistroUsuario(BaseModel):
     nome: str
@@ -101,7 +194,26 @@ def login_usuario(dados: LoginUsuario, db: Session = Depends(database.get_db)):
 
 @app.post("/contas/")
 def criar_conta(conta: ContaCreate, db: Session = Depends(database.get_db)):
-    nova = models.ContaBancaria(nome=conta.nome, banco=conta.banco, tipo=conta.tipo, usuario_id=conta.usuario_id)
+    # Validação específica de cartão: precisa dos dias de fechamento/vencimento
+    if conta.modalidade == "cartao_credito":
+        if not conta.dia_fechamento or not conta.dia_vencimento:
+            raise HTTPException(
+                status_code=400,
+                detail="Cartão de crédito precisa de dia de fechamento e dia de vencimento.",
+            )
+        if not (1 <= conta.dia_fechamento <= 31) or not (1 <= conta.dia_vencimento <= 31):
+            raise HTTPException(status_code=400, detail="Dias devem estar entre 1 e 31.")
+
+    nova = models.ContaBancaria(
+        nome=conta.nome,
+        banco=conta.banco,
+        tipo=conta.tipo,
+        usuario_id=conta.usuario_id,
+        modalidade=conta.modalidade or "corrente",
+        dia_fechamento=conta.dia_fechamento if conta.modalidade == "cartao_credito" else None,
+        dia_vencimento=conta.dia_vencimento if conta.modalidade == "cartao_credito" else None,
+        limite=conta.limite if conta.modalidade == "cartao_credito" else None,
+    )
     db.add(nova)
     db.commit()
     db.refresh(nova)
@@ -192,6 +304,7 @@ def processar_e_salvar_ia(dados_ia, db, usuario_id):
 
     nova_tx = models.Transacao(
         data=hoje,
+        data_caixa=resolver_data_caixa(db, conta_id, hoje),
         descricao=dados_ia.get('descricao', 'Lançamento IA'),
         valor=valor_final,
         categoria=dados_ia.get('categoria', 'A Classificar'),
@@ -234,6 +347,8 @@ def confirmar_transacao(transacao_id: int, dados: ConfirmacaoGasto, db: Session 
     tx = db.query(models.Transacao).filter(models.Transacao.id == transacao_id).first()
     if not tx: raise HTTPException(status_code=404)
     for key, value in dados.dict().items(): setattr(tx, key, value)
+    # Recalcula data_caixa com base na conta escolhida pelo usuário na revisão
+    tx.data_caixa = resolver_data_caixa(db, dados.conta_id, dados.data)
     tx.confirmado = True
     db.commit()
     return {"status": "Sucesso"}
@@ -248,6 +363,7 @@ def editar_transacao_manual(transacao_id: int, dados: ConfirmacaoGasto, db: Sess
     tx.categoria = dados.categoria
     tx.tipo = dados.tipo
     tx.conta_id = dados.conta_id
+    tx.data_caixa = resolver_data_caixa(db, dados.conta_id, dados.data)
     db.commit()
     return {"status": "Editado com sucesso!"}
 
@@ -359,9 +475,11 @@ def importar_lote_csv(lote: LoteTransacoes, db: Session = Depends(database.get_d
         ).order_by(models.Transacao.id.desc()).first()
 
         categoria_sugerida = transacao_antiga.categoria if transacao_antiga else "A Classificar"
+        data_competencia = _normalizar_data_iso(t.data)
 
         nova_tx = models.Transacao(
-            data=_normalizar_data_iso(t.data),
+            data=data_competencia,
+            data_caixa=resolver_data_caixa(db, lote.conta_id, data_competencia),
             descricao=t.descricao,
             valor=t.valor,
             categoria=categoria_sugerida,
@@ -371,7 +489,7 @@ def importar_lote_csv(lote: LoteTransacoes, db: Session = Depends(database.get_d
             confirmado=False
         )
         db.add(nova_tx)
-    
+
     db.commit()
     return {"mensagem": f"{len(lote.transacoes)} transações enviadas para a Quarentena!"}
 
