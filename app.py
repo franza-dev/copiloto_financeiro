@@ -58,14 +58,25 @@ st.markdown("""
             background: transparent !important;
         }
         /* ── SIDEBAR COLAPSÁVEL ──
-           Esconde os botões NATIVOS do Streamlit (que renderizam
-           'keyboard_double_arrow_left' como texto em vez de ícone).
-           O open/close é feito por botões customizados via JS. */
+           Esconde o texto 'keyboard_double_arrow_left' do botão nativo
+           mas mantém o mecanismo interno do Streamlit funcional.
+           Não usamos display:none — isso mata o click(). Usamos
+           dimensão zero + overflow hidden pra esconder visualmente. */
         [data-testid="stSidebarCollapseButton"] {
-            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            position: absolute !important;
         }
         [data-testid="stSidebarCollapsedControl"] {
-            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            position: absolute !important;
         }
         [data-testid="stSidebar"] {
             z-index: 999998 !important;
@@ -289,40 +300,16 @@ components.html("""
     function fecharSidebar() {
         var sidebar = doc.querySelector('[data-testid="stSidebar"]');
         if (!sidebar) return;
-        // Mostra o nativo temporariamente, clica, e esconde de novo
-        var wrapper = sidebar.querySelector('[data-testid="stSidebarCollapseButton"]');
-        if (wrapper) {
-            wrapper.style.display = 'flex';
-            var btn = wrapper.querySelector('button');
-            if (btn) {
-                btn.click();
-                setTimeout(function(){ wrapper.style.display = 'none'; }, 100);
-                return;
-            }
-            wrapper.style.display = 'none';
-        }
-        // Fallback manual
         sidebar.setAttribute('aria-expanded', 'false');
+        sidebar.style.transition = 'transform 0.3s ease';
         sidebar.style.transform = 'translateX(-100%)';
     }
 
     function abrirSidebar() {
         var sidebar = doc.querySelector('[data-testid="stSidebar"]');
         if (!sidebar) return;
-        // Mostra o nativo escondido temporariamente, clica, e esconde de novo
-        var nativo = doc.querySelector('[data-testid="stSidebarCollapsedControl"]');
-        if (nativo) {
-            nativo.style.display = 'flex';
-            var btn = nativo.querySelector('button');
-            if (btn) {
-                btn.click();
-                setTimeout(function(){ nativo.style.display = 'none'; }, 100);
-                return;
-            }
-            nativo.style.display = 'none';
-        }
-        // Fallback: manipula a DOM diretamente
         sidebar.setAttribute('aria-expanded', 'true');
+        sidebar.style.transition = 'transform 0.3s ease';
         sidebar.style.transform = 'none';
         sidebar.style.visibility = 'visible';
         sidebar.style.marginLeft = '0';
