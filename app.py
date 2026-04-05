@@ -9,11 +9,7 @@ st.set_page_config(page_title="Copiloto Financeiro IA", page_icon="💰", layout
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
-@st.cache_resource
-def get_cookie_manager():
-    return stx.CookieManager()
-
-cookie_manager = get_cookie_manager()
+cookie_manager = stx.CookieManager()
 
 st.markdown("""
     <style>
