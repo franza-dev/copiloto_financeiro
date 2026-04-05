@@ -19,9 +19,24 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - certbot-www:/var/www/certbot:ro
+      - certbot-conf:/etc/letsencrypt:ro
     depends_on:
       - api
       - frontend
     restart: always
+
+  # Serviço on-demand — roda só quando for emitir/renovar certificado
+  # Uso: docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d chamaoguido.com -d www.chamaoguido.com ...
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-conf:/etc/letsencrypt
+
+volumes:
+  certbot-www:
+  certbot-conf:
