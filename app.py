@@ -5,7 +5,12 @@ import pandas as pd
 import plotly.graph_objects as go
 import extra_streamlit_components as stx
 
-st.set_page_config(page_title="guido", page_icon="🌱", layout="wide")
+_FAVICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "guido_favicon.svg")
+st.set_page_config(
+    page_title="guido",
+    page_icon=_FAVICON_PATH if os.path.exists(_FAVICON_PATH) else "🌱",
+    layout="wide",
+)
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
@@ -249,15 +254,42 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- SVG inline do logo Guido (reutilizável) ---
-def logo_guido_svg(size: int = 64, color_g: str = "#1D9E75", color_word: str = "#F7F5F0") -> str:
-    """Renderiza o logotipo do Guido seguindo a anatomia do manual (G + wordmark em Georgia)."""
-    h = int(size * 1.17)  # proporção 6.5:1 G/wordmark
-    g_size = int(size * 0.88)
-    word_size = max(int(size * 0.13), 8)
-    return f'''<svg width="{size}" height="{h}" viewBox="0 0 {size} {h}" xmlns="http://www.w3.org/2000/svg">
-        <text x="{size/2}" y="{size*0.82}" font-family="Georgia,'Times New Roman',serif" font-size="{g_size}" font-weight="400" fill="{color_g}" text-anchor="middle" letter-spacing="-2">G</text>
-        <text x="{size/2}" y="{h-4}" font-family="Georgia,'Times New Roman',serif" font-size="{word_size}" font-weight="400" fill="{color_word}" text-anchor="middle" letter-spacing="{word_size*0.45}">guido</text>
+# ==========================================
+# LOGOTIPO GUIDO — v1.1 (logo oficial com óculos)
+# Anatomia: óculos em cima + "G" verde + "uido" escuro, lado a lado
+# viewBox canônico do logo completo: 210×145
+# viewBox canônico do ícone solo dos óculos: 155×52
+# ==========================================
+def logo_guido_svg(width: int = 200, color_g: str = "#1D9E75", color_word: str = "#F7F5F0", color_glasses: str | None = None) -> str:
+    """Logo oficial Guido (óculos + Guido horizontal).
+
+    `width`: largura em px. Altura é calculada proporcionalmente (210:145).
+    `color_word`: cor da parte "uido" — use #111827 em fundo claro, #F7F5F0 em escuro.
+    `color_glasses`: cor dos óculos — default igual ao G.
+    """
+    if color_glasses is None:
+        color_glasses = color_g
+    h = int(width * 145 / 210)
+    return f'''<svg width="{width}" height="{h}" viewBox="0 0 210 145" xmlns="http://www.w3.org/2000/svg">
+        <line x1="26" y1="21" x2="4" y2="10" stroke="{color_glasses}" stroke-width="2.2" stroke-linecap="round"/>
+        <rect x="26" y="14" width="36" height="25" rx="6" fill="none" stroke="{color_glasses}" stroke-width="2.2"/>
+        <line x1="62" y1="26" x2="88" y2="26" stroke="{color_glasses}" stroke-width="2.2" stroke-linecap="round"/>
+        <rect x="88" y="14" width="36" height="25" rx="6" fill="none" stroke="{color_glasses}" stroke-width="2.2"/>
+        <line x1="124" y1="21" x2="148" y2="10" stroke="{color_glasses}" stroke-width="2.2" stroke-linecap="round"/>
+        <text x="4" y="132" font-family="Georgia,'Times New Roman',serif" font-size="86" font-weight="400" fill="{color_g}" text-anchor="start" letter-spacing="-2">G</text>
+        <text x="62" y="132" font-family="Georgia,'Times New Roman',serif" font-size="86" font-weight="400" fill="{color_word}" text-anchor="start" letter-spacing="-2">uido</text>
+    </svg>'''
+
+def icone_oculos_svg(width: int = 56, color: str = "#1D9E75") -> str:
+    """Ícone autônomo dos óculos — sem wordmark.
+    Usado em contextos de espaço limitado: header do painel, sidebar, avatar, favicon."""
+    h = int(width * 52 / 155)
+    return f'''<svg width="{width}" height="{h}" viewBox="0 0 155 52" xmlns="http://www.w3.org/2000/svg">
+        <line x1="18" y1="17" x2="2" y2="5" stroke="{color}" stroke-width="5.5" stroke-linecap="round"/>
+        <rect x="18" y="8" width="40" height="28" rx="7" fill="none" stroke="{color}" stroke-width="5.5"/>
+        <line x1="58" y1="22" x2="97" y2="22" stroke="{color}" stroke-width="5.5" stroke-linecap="round"/>
+        <rect x="97" y="8" width="40" height="28" rx="7" fill="none" stroke="{color}" stroke-width="5.5"/>
+        <line x1="137" y1="17" x2="153" y2="5" stroke="{color}" stroke-width="5.5" stroke-linecap="round"/>
     </svg>'''
 
 # ==========================================
@@ -275,8 +307,10 @@ if "usuario_id" not in st.session_state:
     with col:
         st.markdown(f"""
             <div style="text-align:center; margin-bottom: 2rem;">
-                <div style="display:inline-flex; margin-bottom: 0.5rem;">{logo_guido_svg(96)}</div>
-                <p style="color:#94A3B8; font-size:0.95rem; margin: 0.5rem 0 0 0; font-family: Georgia, serif; font-style: italic; line-height: 1.5;">
+                <div style="display:inline-flex; margin-bottom: 0.75rem;">
+                    {logo_guido_svg(width=280, color_word="#F7F5F0")}
+                </div>
+                <p style="color:#94A3B8; font-size:0.95rem; margin: 0.25rem 0 0 0; font-family: Georgia, serif; font-style: italic; line-height: 1.5;">
                     Seu braço direito pra separar<br>o dinheiro da casa do dinheiro do negócio.
                 </p>
                 <p style="color:#64748B; font-size:0.78rem; margin: 0.75rem 0 0 0;">chamaoguido.com.br</p>
@@ -370,10 +404,12 @@ if "usuario_id" not in st.session_state:
 # ==========================================
 USUARIO_ID = st.session_state.usuario_id
 
-# --- HEADER ---
+# --- HEADER — ícone oficial dos óculos + saudação ---
 st.markdown(f"""
     <div class="guido-header">
-        <div>{logo_guido_svg(72)}</div>
+        <div style="display:flex; align-items:center; justify-content:center; width:72px; height:72px; background: rgba(29,158,117,0.08); border: 1px solid rgba(29,158,117,0.25); border-radius: 16px;">
+            {icone_oculos_svg(width=52)}
+        </div>
         <div class="guido-header-text">
             <h1>Oi, {st.session_state.usuario_nome.split()[0]}.</h1>
             <p>Chama o Guido. Eu cuido do seu dinheiro.</p>
@@ -383,8 +419,8 @@ st.markdown(f"""
 
 # --- SIDEBAR ---
 st.sidebar.markdown(
-    f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;">{logo_guido_svg(40)}'
-    f'<span style="font-family:Georgia,serif;font-size:1.4rem;color:#F7F5F0;">guido</span></div>',
+    f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;">{icone_oculos_svg(width=38)}'
+    f'<span style="font-family:Georgia,serif;font-size:1.5rem;color:#F7F5F0;letter-spacing:-0.5px;">guido</span></div>',
     unsafe_allow_html=True,
 )
 st.sidebar.caption(f"Logado como **{st.session_state.usuario_nome.split()[0]}**")
