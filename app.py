@@ -57,21 +57,26 @@ st.markdown("""
         header[data-testid="stHeader"] {
             background: transparent !important;
         }
-        /* Sidebar do Guido é fixa — esconde qualquer controle de colapsar
-           (o botão X dentro da sidebar e o chevron no header que fecha ela).
-           Com isso, combinado com initial_sidebar_state="expanded", a sidebar
-           nasce expandida e não tem como ser colapsada. */
-        [data-testid="stSidebarCollapseButton"],
-        button[kind="headerNoPadding"][aria-label*="sidebar" i],
-        button[kind="headerNoPadding"][aria-label*="Collapse" i],
-        button[data-testid="baseButton-headerNoPadding"] {
-            display: none !important;
-        }
-        /* Garantia extra: se por algum motivo a sidebar estiver colapsada
-           (sessão antiga, cache), o botão de reabrir precisa estar visível. */
-        [data-testid="stSidebarCollapsedControl"] {
+        /* Sidebar do Guido é FIXA — travada visível mesmo quando o
+           localStorage do navegador guarda o estado 'collapsed' de sessões
+           antigas. Sobrescreve o transform que o Streamlit aplica pra
+           esconder a sidebar e força ela a ocupar o espaço reservado. */
+        [data-testid="stSidebar"] {
+            transform: none !important;
             visibility: visible !important;
-            display: flex !important;
+            margin-left: 0 !important;
+            min-width: 244px !important;
+        }
+        [data-testid="stSidebar"][aria-expanded="false"] {
+            transform: none !important;
+            visibility: visible !important;
+            margin-left: 0 !important;
+        }
+        /* Esconde o botão de colapsar (dentro da sidebar) pra usuário
+           não conseguir fechar. Seletor específico pra não afetar outros
+           botões do header. */
+        [data-testid="stSidebarCollapseButton"] {
+            display: none !important;
         }
 
         /* Títulos em Georgia serif — DNA da marca */
