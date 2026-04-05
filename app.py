@@ -327,6 +327,22 @@ def icone_oculos_svg(width: int = 56, color: str = "#1D9E75") -> str:
 # ==========================================
 # AUTENTICAÇÃO — restaura sessão do cookie
 # ==========================================
+
+# Logout: se o flag existe, limpa tudo antes de qualquer outra coisa.
+# Esse mecanismo existe porque cookie_manager.delete() é instável —
+# frequentemente não executa o JS de deleção se chamado junto com
+# st.rerun(). Então o botão "Sair" seta o flag e faz rerun; na volta,
+# esse bloco limpa a sessão e os cookies com segurança.
+if st.session_state.get("_guido_logout"):
+    st.session_state.pop("_guido_logout", None)
+    st.session_state.pop("usuario_id", None)
+    st.session_state.pop("usuario_nome", None)
+    try:
+        cookie_manager.delete("usuario_id",   key="logout_del_id")
+        cookie_manager.delete("usuario_nome", key="logout_del_nome")
+    except Exception:
+        pass  # se falhar, tanto faz — a sessão já foi limpa
+
 if "usuario_id" not in st.session_state:
     cookie_id   = cookie_manager.get("usuario_id")
     cookie_nome = cookie_manager.get("usuario_nome")
@@ -457,10 +473,7 @@ st.sidebar.markdown(
 )
 st.sidebar.caption(f"Logado como **{st.session_state.usuario_nome.split()[0]}**")
 if st.sidebar.button("Sair", use_container_width=True):
-    cookie_manager.delete("usuario_id",   key="del_id")
-    cookie_manager.delete("usuario_nome", key="del_nome")
-    del st.session_state.usuario_id
-    del st.session_state.usuario_nome
+    st.session_state["_guido_logout"] = True
     st.rerun()
 
 st.sidebar.divider()
