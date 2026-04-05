@@ -380,7 +380,7 @@ def definir_limite_manual(dados: LimiteCreate, db: Session = Depends(database.ge
     limite_existente = db.query(models.LimiteCategoria).filter(
         models.LimiteCategoria.categoria == dados.categoria
     ).first()
-    
+
     if limite_existente:
         limite_existente.valor_teto = dados.valor_teto
     else:
@@ -390,9 +390,18 @@ def definir_limite_manual(dados: LimiteCreate, db: Session = Depends(database.ge
             usuario_id=dados.usuario_id
         )
         db.add(novo_limite)
-        
+
     db.commit()
     return {"status": "Meta atualizada com sucesso!"}
+
+@app.delete("/limites/{limite_id}")
+def excluir_limite(limite_id: int, db: Session = Depends(database.get_db)):
+    limite = db.query(models.LimiteCategoria).filter(models.LimiteCategoria.id == limite_id).first()
+    if not limite:
+        raise HTTPException(status_code=404, detail="Teto não encontrado")
+    db.delete(limite)
+    db.commit()
+    return {"status": "Teto removido"}
 
 @app.get("/categorias")
 def listar_categorias(db: Session = Depends(database.get_db)):

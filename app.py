@@ -1335,9 +1335,40 @@ with aba_categorias:
                 limites_lista = req_limites.json()
                 if limites_lista:
                     for limite in limites_lista:
-                        l_nome, l_valor = st.columns([3, 2])
+                        l_nome, l_valor, l_edit, l_del = st.columns([3, 2, 1, 1])
                         l_nome.write(f"**{limite['categoria']}**")
                         l_valor.write(f"R$ {limite['valor_teto']:,.2f}")
+                        if l_edit.button("✏️", key=f"edit_lim_{limite['id']}", help="Alterar valor"):
+                            st.session_state[f"_editando_limite_{limite['id']}"] = True
+                        if l_del.button("🗑️", key=f"del_lim_{limite['id']}", help="Excluir teto"):
+                            res_del = requests.delete(f"{API_URL}/limites/{limite['id']}")
+                            if res_del.status_code == 200:
+                                st.rerun()
+
+                        # Form inline de edição (aparece ao clicar no ✏️)
+                        if st.session_state.get(f"_editando_limite_{limite['id']}", False):
+                            with st.form(f"form_edit_lim_{limite['id']}"):
+                                novo_valor = st.number_input(
+                                    f"Novo teto pra {limite['categoria']}",
+                                    min_value=0.0,
+                                    value=float(limite['valor_teto']),
+                                    step=50.0,
+                                )
+                                col_salvar, col_cancelar = st.columns(2)
+                                salvar = col_salvar.form_submit_button("Salvar", type="primary")
+                                cancelar = col_cancelar.form_submit_button("Cancelar")
+                                if salvar and novo_valor > 0:
+                                    payload_edit = {
+                                        "categoria": limite['categoria'],
+                                        "valor_teto": float(novo_valor),
+                                        "usuario_id": USUARIO_ID,
+                                    }
+                                    requests.post(f"{API_URL}/limites/", json=payload_edit)
+                                    st.session_state.pop(f"_editando_limite_{limite['id']}", None)
+                                    st.rerun()
+                                if cancelar:
+                                    st.session_state.pop(f"_editando_limite_{limite['id']}", None)
+                                    st.rerun()
                 else:
                     st.info("Ainda não tem teto definido.")
         except:
