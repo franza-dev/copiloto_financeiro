@@ -309,11 +309,43 @@ if st.sidebar.button("Sair"):
     st.rerun()
 
 st.sidebar.divider()
+st.sidebar.header("📅 Período")
+
+from datetime import datetime as _dt
+_ano_atual = _dt.now().year
+_mes_atual = _dt.now().month
+_MESES = [
+    "Ano todo", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+]
+_anos_opcoes = list(range(_ano_atual, _ano_atual - 6, -1))
+
+filtro_ano = st.sidebar.selectbox("Ano", _anos_opcoes, index=0, key="filtro_ano")
+filtro_mes_label = st.sidebar.selectbox(
+    "Mês", _MESES, index=_mes_atual, key="filtro_mes_label"
+)
+# índice 0 = "Ano todo" → mes = None; 1..12 → mês correspondente
+filtro_mes = None if filtro_mes_label == "Ano todo" else _MESES.index(filtro_mes_label)
+
+# Parâmetros de período usados em todas as chamadas
+PARAMS_PERIODO = {"ano": filtro_ano}
+if filtro_mes:
+    PARAMS_PERIODO["mes"] = filtro_mes
+
+if filtro_mes:
+    st.sidebar.caption(f"Exibindo: **{filtro_mes_label}/{filtro_ano}**")
+else:
+    st.sidebar.caption(f"Exibindo: **Ano inteiro de {filtro_ano}**")
+
+st.sidebar.divider()
 st.sidebar.header("Resumo Consolidado")
 st.sidebar.write("Apenas dados confirmados")
 
 try:
-    resumo_req = requests.get(f"{API_URL}/dashboard/resumo", params={"usuario_id": USUARIO_ID})
+    resumo_req = requests.get(
+        f"{API_URL}/dashboard/resumo",
+        params={"usuario_id": USUARIO_ID, **PARAMS_PERIODO},
+    )
     if resumo_req.status_code == 200:
         resumo = resumo_req.json()
         st.sidebar.subheader("🏢 Empresa (PJ)")
@@ -452,7 +484,7 @@ with aba_dashboard:
                     fig = px.pie(df_chart, values='Valor', names='Origem', hole=.4, color_discrete_sequence=['#FF4B4B', '#1C83E1'])
                     st.plotly_chart(fig, use_container_width=True)
 
-            req_hist_grafico = requests.get(f"{API_URL}/transacoes/historico", params={"usuario_id": USUARIO_ID})
+            req_hist_grafico = requests.get(f"{API_URL}/transacoes/historico", params={"usuario_id": USUARIO_ID, **PARAMS_PERIODO})
             if req_hist_grafico.status_code == 200:
                 hist_grafico = req_hist_grafico.json()
                 if hist_grafico:
@@ -540,7 +572,7 @@ with aba_dashboard:
 with aba_extrato:
     st.write("### 🧾 Histórico de Lançamentos")
     try:
-        req_historico = requests.get(f"{API_URL}/transacoes/historico", params={"usuario_id": USUARIO_ID})
+        req_historico = requests.get(f"{API_URL}/transacoes/historico", params={"usuario_id": USUARIO_ID, **PARAMS_PERIODO})
         if req_historico.status_code == 200:
             historico = req_historico.json()
             if historico:

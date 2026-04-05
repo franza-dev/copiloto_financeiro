@@ -254,20 +254,51 @@ def apagar_transacao(transacao_id: int, db: Session = Depends(database.get_db)):
     db.commit()
     return {"status": "Apagado"}
 
+# --- HELPER: prefixo de data para filtro mensal/anual ---
+def _prefixo_data(ano: Optional[int], mes: Optional[int]) -> Optional[str]:
+    """Retorna o prefixo para LIKE ('YYYY-MM' ou 'YYYY'), ou None se sem filtro."""
+    if not ano:
+        return None
+    if mes:
+        return f"{ano:04d}-{mes:02d}"
+    return f"{ano:04d}"
+
 @app.get("/transacoes/historico")
-def listar_historico(usuario_id: int, db: Session = Depends(database.get_db)):
-    return db.query(models.Transacao).filter(models.Transacao.confirmado == True, models.Transacao.usuario_id == usuario_id).order_by(models.Transacao.id.desc()).all()
+def listar_historico(
+    usuario_id: int,
+    ano: Optional[int] = None,
+    mes: Optional[int] = None,
+    db: Session = Depends(database.get_db),
+):
+    q = db.query(models.Transacao).filter(
+        models.Transacao.confirmado == True,
+        models.Transacao.usuario_id == usuario_id,
+    )
+    prefixo = _prefixo_data(ano, mes)
+    if prefixo:
+        q = q.filter(models.Transacao.data.like(f"{prefixo}%"))
+    return q.order_by(models.Transacao.id.desc()).all()
 
 # --- 5. DASHBOARD E SISTEMA ---
 
 @app.get("/dashboard/resumo")
-def resumo_financeiro(usuario_id: int, db: Session = Depends(database.get_db)):
+def resumo_financeiro(
+    usuario_id: int,
+    ano: Optional[int] = None,
+    mes: Optional[int] = None,
+    db: Session = Depends(database.get_db),
+):
+    prefixo = _prefixo_data(ano, mes)
+
     def calc(tipo, sinal):
-        return db.query(func.sum(models.Transacao.valor)).filter(
+        q = db.query(func.sum(models.Transacao.valor)).filter(
             models.Transacao.tipo == tipo, models.Transacao.confirmado == True,
             models.Transacao.usuario_id == usuario_id,
             (models.Transacao.valor > 0 if sinal == "+" else models.Transacao.valor < 0)
-        ).scalar() or 0
+        )
+        if prefixo:
+            q = q.filter(models.Transacao.data.like(f"{prefixo}%"))
+        return q.scalar() or 0
 
     rpj, dpj = calc("PJ", "+"), calc("PJ", "-")
     rpf, dpf = calc("PF", "+"), calc("PF", "-")
@@ -297,10 +328,24 @@ def limpar_quarentena(usuario_id: int, db: Session = Depends(database.get_db)):
     db.commit()
     return {"mensagem": "Quarentena esvaziada!"}
 
+def _normalizar_data_iso(data_str: str) -> str:
+    """Converte datas comuns de extratos bancários para ISO 'YYYY-MM-DD'.
+    Aceita: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, DD/MM/YY, YYYY/MM/DD.
+    Se não reconhecer, devolve a string original (não perde o dado)."""
+    if not data_str:
+        return data_str
+    s = str(data_str).strip()[:10]
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d", "%d/%m/%y"):
+        try:
+            return datetime.strptime(s, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return data_str
+
 @app.post("/transacoes/lote")
 def importar_lote_csv(lote: LoteTransacoes, db: Session = Depends(database.get_db)):
     conta = db.query(models.ContaBancaria).filter(models.ContaBancaria.id == lote.conta_id).first()
-    tipo_da_conta = conta.tipo if conta else "PF" 
+    tipo_da_conta = conta.tipo if conta else "PF"
 
     for t in lote.transacoes:
         # Tenta lembrar a categoria de um gasto igual no passado
@@ -312,7 +357,7 @@ def importar_lote_csv(lote: LoteTransacoes, db: Session = Depends(database.get_d
         categoria_sugerida = transacao_antiga.categoria if transacao_antiga else "A Classificar"
 
         nova_tx = models.Transacao(
-            data=t.data,
+            data=_normalizar_data_iso(t.data),
             descricao=t.descricao,
             valor=t.valor,
             categoria=categoria_sugerida,
