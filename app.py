@@ -308,58 +308,57 @@ st.markdown("""
             font-style: italic;
         }
     </style>
-
-    <script>
-    // Botão de fallback pra reabrir a sidebar quando o nativo do Streamlit
-    // fica escondido por algum quirk de DOM. Monitora o estado da sidebar
-    // a cada 500ms e mostra/esconde o botão conforme necessário.
-    (function() {
-        function criarBotao() {
-            if (document.getElementById('guido-sidebar-btn')) return;
-            var btn = document.createElement('button');
-            btn.id = 'guido-sidebar-btn';
-            btn.className = 'guido-sidebar-toggle';
-            btn.innerHTML = '&#9654;';  // ▶
-            btn.title = 'Abrir menu lateral';
-            btn.style.display = 'none';
-            btn.onclick = function() {
-                // Tenta clicar no botão nativo do Streamlit
-                var nativo = document.querySelector('[data-testid="stSidebarCollapsedControl"] button')
-                           || document.querySelector('[data-testid="stSidebarCollapsedControl"]');
-                if (nativo) { nativo.click(); return; }
-                // Fallback: muda o atributo diretamente
-                var sidebar = document.querySelector('[data-testid="stSidebar"]');
-                if (sidebar) {
-                    sidebar.setAttribute('aria-expanded', 'true');
-                    sidebar.style.transform = 'none';
-                    sidebar.style.visibility = 'visible';
-                    sidebar.style.marginLeft = '0';
-                }
-            };
-            document.body.appendChild(btn);
-        }
-
-        function verificar() {
-            criarBotao();
-            var btn = document.getElementById('guido-sidebar-btn');
-            if (!btn) return;
-            var sidebar = document.querySelector('[data-testid="stSidebar"]');
-            if (!sidebar) { btn.style.display = 'flex'; return; }
-            var expandida = sidebar.getAttribute('aria-expanded');
-            var transform = window.getComputedStyle(sidebar).transform;
-            var visivel = (expandida !== 'false') && (transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)');
-            btn.style.display = visivel ? 'none' : 'flex';
-        }
-
-        // Espera o Streamlit renderizar
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() { setInterval(verificar, 500); });
-        } else {
-            setInterval(verificar, 500);
-        }
-    })();
-    </script>
 """, unsafe_allow_html=True)
+
+# Botão de fallback pra reabrir a sidebar — injetado via components.html()
+# porque st.markdown(unsafe_allow_html=True) REMOVE tags <script> silenciosamente.
+# O components.html() cria um iframe que executa JS de verdade, e de dentro
+# dele acessamos window.parent.document pra manipular a DOM do app principal.
+import streamlit.components.v1 as components
+components.html("""
+<script>
+(function() {
+    var doc = window.parent.document;
+
+    function criarBotao() {
+        if (doc.getElementById('guido-sidebar-btn')) return;
+        var btn = doc.createElement('button');
+        btn.id = 'guido-sidebar-btn';
+        btn.title = 'Abrir menu lateral';
+        btn.innerHTML = '&#9654;';
+        btn.style.cssText = 'position:fixed;top:14px;left:14px;z-index:1000000;width:40px;height:40px;border-radius:10px;background:#1D9E75;color:#fff;border:none;cursor:pointer;font-size:18px;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:background 0.15s;';
+        btn.onmouseover = function(){ btn.style.background='#085041'; };
+        btn.onmouseout = function(){ btn.style.background='#1D9E75'; };
+        btn.onclick = function() {
+            var nativo = doc.querySelector('[data-testid="stSidebarCollapsedControl"] button');
+            if (nativo) { nativo.click(); return; }
+            var sidebar = doc.querySelector('[data-testid="stSidebar"]');
+            if (sidebar) {
+                sidebar.setAttribute('aria-expanded', 'true');
+                sidebar.style.transform = 'none';
+                sidebar.style.visibility = 'visible';
+                sidebar.style.marginLeft = '0';
+                sidebar.style.width = '';
+            }
+        };
+        doc.body.appendChild(btn);
+    }
+
+    function verificar() {
+        criarBotao();
+        var btn = doc.getElementById('guido-sidebar-btn');
+        if (!btn) return;
+        var sidebar = doc.querySelector('[data-testid="stSidebar"]');
+        if (!sidebar) { btn.style.display = 'flex'; return; }
+        var expandida = sidebar.getAttribute('aria-expanded');
+        var visivel = expandida !== 'false';
+        btn.style.display = visivel ? 'none' : 'flex';
+    }
+
+    setInterval(verificar, 400);
+})();
+</script>
+""", height=0)
 
 # ==========================================
 # LOGOTIPO GUIDO — v1.1 (logo oficial com óculos)
