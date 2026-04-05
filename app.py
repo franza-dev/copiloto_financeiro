@@ -10,6 +10,7 @@ st.set_page_config(
     page_title="guido",
     page_icon=_FAVICON_PATH if os.path.exists(_FAVICON_PATH) else "🌱",
     layout="wide",
+    initial_sidebar_state="expanded",  # sidebar do Guido nunca nasce colapsada
 )
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
@@ -56,7 +57,18 @@ st.markdown("""
         header[data-testid="stHeader"] {
             background: transparent !important;
         }
-        /* Garante que o botão de reabrir sidebar fica sempre clicável */
+        /* Sidebar do Guido é fixa — esconde qualquer controle de colapsar
+           (o botão X dentro da sidebar e o chevron no header que fecha ela).
+           Com isso, combinado com initial_sidebar_state="expanded", a sidebar
+           nasce expandida e não tem como ser colapsada. */
+        [data-testid="stSidebarCollapseButton"],
+        button[kind="headerNoPadding"][aria-label*="sidebar" i],
+        button[kind="headerNoPadding"][aria-label*="Collapse" i],
+        button[data-testid="baseButton-headerNoPadding"] {
+            display: none !important;
+        }
+        /* Garantia extra: se por algum motivo a sidebar estiver colapsada
+           (sessão antiga, cache), o botão de reabrir precisa estar visível. */
         [data-testid="stSidebarCollapsedControl"] {
             visibility: visible !important;
             display: flex !important;
