@@ -7,6 +7,6 @@ streamlit
 requests
 pandas
 plotly
-google-generativeai
+google-genai
 python-dotenv
 python-multipart

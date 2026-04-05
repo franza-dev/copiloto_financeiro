@@ -1,19 +1,15 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import json
 import os
 from dotenv import load_dotenv
 
-# Carrega as variáveis do .env
 load_dotenv()
 
-# Puxa a chave lá do .env em vez de deixar solta no código
 CHAVE_API = os.getenv("GOOGLE_API_KEY")
 
-def configurar_ia():
-    genai.configure(api_key=CHAVE_API)
-    return genai.GenerativeModel('gemini-2.5-flash')
+client = genai.Client(api_key=CHAVE_API)
 
-# --- PROMPT MESTRE (A REGRA DE NEGÓCIO) ---
 PROMPT_SISTEMA = """
 Você é um assistente financeiro de alta precisão. Sua tarefa é converter frases ou áudios em dados JSON.
 
@@ -39,9 +35,11 @@ REGRAS DE OURO:
 """
 
 def processar_texto_ia(texto):
-    model = configurar_ia()
     try:
-        response = model.generate_content(f"{PROMPT_SISTEMA}\n\nFrase do usuário: '{texto}'")
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"{PROMPT_SISTEMA}\n\nFrase do usuário: '{texto}'"
+        )
         texto_limpo = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(texto_limpo)
     except Exception as e:
@@ -49,17 +47,23 @@ def processar_texto_ia(texto):
         return {"descricao": "Erro", "valor": 0, "natureza": "saida", "categoria": "Erro"}
 
 def processar_audio_ia(caminho_audio):
-    model = configurar_ia()
     try:
         # 1. Upload do arquivo para o servidor do Google
-        arquivo_gemini = genai.upload_file(caminho_audio)
-        
+        with open(caminho_audio, "rb") as f:
+            arquivo_gemini = client.files.upload(
+                file=f,
+                config=types.UploadFileConfig(display_name=caminho_audio)
+            )
+
         # 2. Processamento multimodal
-        response = model.generate_content([PROMPT_SISTEMA, arquivo_gemini])
-        
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[PROMPT_SISTEMA, arquivo_gemini]
+        )
+
         # 3. Limpeza do arquivo no Google
-        arquivo_gemini.delete()
-        
+        client.files.delete(name=arquivo_gemini.name)
+
         texto_limpo = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(texto_limpo)
     except Exception as e:
