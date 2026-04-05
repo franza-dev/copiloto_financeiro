@@ -991,6 +991,127 @@ with aba_contas:
     else:
         st.info("Nenhuma conta cadastrada ainda.")
 
+    # ==================================================
+    # SEÇÃO DE FATURAS DE CARTÃO (fase 2)
+    # ==================================================
+    cartoes = [c for c in contas if c.get("modalidade") == "cartao_credito"]
+    contas_correntes = [c for c in contas if c.get("modalidade") != "cartao_credito"]
+
+    if cartoes:
+        st.divider()
+        st.markdown("#### 💳 Suas faturas")
+        st.caption("Todo cartão tem sua fatura. Quando paga, o Guido lança como transferência (não duplica no gráfico).")
+
+        for cartao in cartoes:
+            try:
+                req_fatura = requests.get(
+                    f"{API_URL}/cartoes/{cartao['id']}/faturas-abertas",
+                    params={"usuario_id": USUARIO_ID},
+                )
+                if req_fatura.status_code != 200:
+                    st.caption(f"💳 {cartao['nome']} — não foi possível carregar a fatura.")
+                    continue
+
+                info_fatura = req_fatura.json()
+                faturas = info_fatura.get("faturas", [])
+                proxima = info_fatura.get("proxima")
+
+                tipo_label = "🏢 Negócio" if cartao.get("tipo") == "PJ" else "🏠 Casa"
+
+                with st.container(border=True):
+                    col_info, col_botao = st.columns([3, 1])
+
+                    with col_info:
+                        st.markdown(f"**💳 {cartao['nome']}** · {tipo_label}")
+                        if proxima:
+                            st.markdown(
+                                f"Fatura aberta: **R$ {proxima['valor']:.2f}** · vence {proxima['vencimento']}"
+                            )
+                            if len(faturas) > 1:
+                                outras = sum(f["valor"] for f in faturas[1:])
+                                st.caption(f"+ {len(faturas) - 1} fatura(s) futura(s) somando R$ {outras:.2f}")
+                        else:
+                            st.caption("✨ Nenhuma fatura em aberto.")
+
+                    with col_botao:
+                        if proxima and contas_correntes:
+                            if st.button("Pagar fatura", key=f"abrir_pgto_{cartao['id']}", use_container_width=True):
+                                # Toggle: se já está aberto, fecha. Se não, abre.
+                                key_aberto = f"pgto_aberto_{cartao['id']}"
+                                st.session_state[key_aberto] = not st.session_state.get(key_aberto, False)
+                                st.rerun()
+                        elif proxima and not contas_correntes:
+                            st.caption("Cadastre uma conta corrente pra pagar")
+
+                    # Form inline de pagamento (toggleável)
+                    if proxima and contas_correntes and st.session_state.get(f"pgto_aberto_{cartao['id']}", False):
+                        st.divider()
+                        st.markdown("##### Registrar pagamento")
+                        with st.form(f"form_pgto_{cartao['id']}"):
+                            pc1, pc2, pc3 = st.columns(3)
+                            valor_pgto = pc1.number_input(
+                                "Valor (R$)",
+                                min_value=0.01,
+                                value=float(proxima["valor"]),
+                                step=10.0,
+                                key=f"pgto_valor_{cartao['id']}",
+                                help="Pode editar se for pagar diferente do total (pagamento parcial, estorno, etc.)",
+                            )
+                            # Monta lista de contas correntes do mesmo tipo (PF paga PF, PJ paga PJ)
+                            # Fallback: se não tiver corrente do mesmo tipo, aceita qualquer uma
+                            correntes_mesmo_tipo = [c for c in contas_correntes if c.get("tipo") == cartao.get("tipo")]
+                            correntes_escolha = correntes_mesmo_tipo if correntes_mesmo_tipo else contas_correntes
+                            mapa_origem = {f"🏦 {c['nome']} ({c['banco']})": c["id"] for c in correntes_escolha}
+                            origem_label = pc2.selectbox(
+                                "Sai de onde?",
+                                list(mapa_origem.keys()),
+                                key=f"pgto_origem_{cartao['id']}",
+                            )
+                            data_pgto = pc3.text_input(
+                                "Data",
+                                value=_dt.now().date().isoformat(),
+                                key=f"pgto_data_{cartao['id']}",
+                                help="Quando o dinheiro sai da sua conta (ISO: AAAA-MM-DD)",
+                            )
+
+                            col_cancel, col_confirmar = st.columns(2)
+                            cancelou = col_cancel.form_submit_button("Cancelar", use_container_width=True)
+                            confirmou = col_confirmar.form_submit_button(
+                                "Confirmar pagamento ✅",
+                                type="primary",
+                                use_container_width=True,
+                            )
+
+                            if cancelou:
+                                st.session_state[f"pgto_aberto_{cartao['id']}"] = False
+                                st.rerun()
+
+                            if confirmou:
+                                payload_pgto = {
+                                    "cartao_id": cartao["id"],
+                                    "conta_origem_id": mapa_origem[origem_label],
+                                    "valor": float(valor_pgto),
+                                    "data": data_pgto,
+                                    "usuario_id": USUARIO_ID,
+                                }
+                                res_pgto = requests.post(
+                                    f"{API_URL}/transacoes/pagar-fatura",
+                                    json=payload_pgto,
+                                )
+                                if res_pgto.status_code == 200:
+                                    st.success(f"✅ Fatura paga. R$ {valor_pgto:.2f} saíram da sua conta corrente.")
+                                    st.session_state[f"pgto_aberto_{cartao['id']}"] = False
+                                    st.rerun()
+                                else:
+                                    try:
+                                        detail = res_pgto.json().get("detail", "erro desconhecido")
+                                    except Exception:
+                                        detail = f"erro {res_pgto.status_code}"
+                                    st.error(f"Não consegui registrar o pagamento: {detail}")
+
+            except Exception as exc:
+                st.caption(f"💳 {cartao['nome']} — erro: {exc}")
+
     st.divider()
     st.markdown("#### ⚠️ Zona de perigo")
     st.warning("Cuidado: essas ações não dá pra desfazer.")

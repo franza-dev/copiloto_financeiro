@@ -158,6 +158,13 @@ class ContaCreate(BaseModel):
     dia_vencimento: Optional[int] = None   # idem
     limite: Optional[float] = None         # opcional, só informativo por enquanto
 
+class PagamentoFatura(BaseModel):
+    cartao_id: int           # conta de cartão que está sendo paga
+    conta_origem_id: int     # conta corrente de onde sai o dinheiro
+    valor: float             # valor a pagar (positivo)
+    data: str                # data do pagamento ISO YYYY-MM-DD
+    usuario_id: int
+
 class RegistroUsuario(BaseModel):
     nome: str
     email: str
@@ -222,6 +229,147 @@ def criar_conta(conta: ContaCreate, db: Session = Depends(database.get_db)):
 @app.get("/contas/{usuario_id}")
 def listar_contas(usuario_id: int, db: Session = Depends(database.get_db)):
     return db.query(models.ContaBancaria).filter(models.ContaBancaria.usuario_id == usuario_id).all()
+
+# --- CARTÃO DE CRÉDITO: faturas ---
+
+@app.get("/cartoes/{cartao_id}/faturas-abertas")
+def listar_faturas_abertas(cartao_id: int, usuario_id: int, db: Session = Depends(database.get_db)):
+    """Lista faturas em aberto de um cartão, agrupadas por data de vencimento
+    (data_caixa). Retorna a próxima fatura (saldo devedor mais antigo ainda não
+    quitado) e também um resumo de todas as faturas com saldo != 0.
+
+    Uma fatura é considerada 'quitada' quando a soma de todas as transações
+    com a mesma data_caixa naquele cartão é == 0 (compras negativas canceladas
+    pelo pagamento positivo da transferência interna)."""
+    cartao = db.query(models.ContaBancaria).filter(
+        models.ContaBancaria.id == cartao_id,
+        models.ContaBancaria.usuario_id == usuario_id,
+    ).first()
+    if not cartao:
+        raise HTTPException(status_code=404, detail="Cartão não encontrado")
+    if cartao.modalidade != "cartao_credito":
+        raise HTTPException(status_code=400, detail="Essa conta não é um cartão de crédito")
+
+    # Agrupa por data_caixa (vencimento previsto) e soma os valores.
+    # Compras entram como valor negativo, pagamento de fatura entra como positivo.
+    resultados = (
+        db.query(
+            models.Transacao.data_caixa,
+            func.sum(models.Transacao.valor).label("saldo"),
+        )
+        .filter(
+            models.Transacao.conta_id == cartao_id,
+            models.Transacao.usuario_id == usuario_id,
+            models.Transacao.confirmado == True,
+            models.Transacao.data_caixa.isnot(None),
+        )
+        .group_by(models.Transacao.data_caixa)
+        .order_by(models.Transacao.data_caixa.asc())
+        .all()
+    )
+
+    # Uma fatura "em aberto" é aquela cujo saldo não zera (fatura quitada = soma 0).
+    # Como compras são negativas, uma fatura devedora tem saldo < 0.
+    faturas = []
+    for data_vencimento, saldo in resultados:
+        if saldo is None or abs(saldo) < 0.01:
+            continue
+        faturas.append({
+            "vencimento": data_vencimento,
+            "valor": float(abs(saldo)),  # sempre mostra positivo pro MEI
+        })
+
+    return {
+        "cartao_id": cartao_id,
+        "cartao_nome": cartao.nome,
+        "faturas": faturas,
+        "proxima": faturas[0] if faturas else None,
+    }
+
+
+@app.post("/transacoes/pagar-fatura")
+def pagar_fatura(dados: PagamentoFatura, db: Session = Depends(database.get_db)):
+    """Registra o pagamento de uma fatura como um par atômico de transações
+    marcadas como 'Transferência Interna':
+      - saída (valor negativo) da conta corrente de origem
+      - entrada (valor positivo) no cartão, zerando aquela fatura
+
+    As duas transações compartilham o mesmo `tx_transferencia_id` (auto-FK)
+    pra serem auditáveis como um par."""
+    if dados.valor <= 0:
+        raise HTTPException(status_code=400, detail="Valor do pagamento precisa ser maior que zero")
+
+    cartao = db.query(models.ContaBancaria).filter(
+        models.ContaBancaria.id == dados.cartao_id,
+        models.ContaBancaria.usuario_id == dados.usuario_id,
+    ).first()
+    if not cartao or cartao.modalidade != "cartao_credito":
+        raise HTTPException(status_code=400, detail="Cartão inválido")
+
+    origem = db.query(models.ContaBancaria).filter(
+        models.ContaBancaria.id == dados.conta_origem_id,
+        models.ContaBancaria.usuario_id == dados.usuario_id,
+    ).first()
+    if not origem:
+        raise HTTPException(status_code=400, detail="Conta de origem não encontrada")
+    if origem.modalidade == "cartao_credito":
+        raise HTTPException(
+            status_code=400,
+            detail="Você não pode pagar um cartão usando outro cartão — escolha uma conta corrente.",
+        )
+
+    data_iso = dados.data or date.today().isoformat()
+    descricao = f"Pagamento fatura {cartao.nome}"
+
+    # Cria as duas pernas da transferência. Ordem:
+    # 1. Insere a saída, commit parcial pra ganhar um ID
+    # 2. Insere a entrada usando o id da saída como tx_transferencia_id
+    # 3. Atualiza a saída com o id da entrada
+    # 4. Commit final
+    try:
+        saida = models.Transacao(
+            data=data_iso,
+            data_caixa=data_iso,  # conta corrente: competência = caixa
+            descricao=descricao,
+            valor=-abs(float(dados.valor)),
+            categoria="Transferência Interna",
+            tipo=cartao.tipo,  # mantém consistência PF/PJ com o cartão
+            conta_id=origem.id,
+            usuario_id=dados.usuario_id,
+            confirmado=True,
+        )
+        db.add(saida)
+        db.flush()  # gera o id sem fazer commit
+
+        entrada = models.Transacao(
+            data=data_iso,
+            data_caixa=data_iso,  # pagamento é caixa imediato no cartão também
+            descricao=descricao,
+            valor=abs(float(dados.valor)),
+            categoria="Transferência Interna",
+            tipo=cartao.tipo,
+            conta_id=cartao.id,
+            usuario_id=dados.usuario_id,
+            confirmado=True,
+            tx_transferencia_id=saida.id,
+        )
+        db.add(entrada)
+        db.flush()
+
+        # Linka a saída na entrada (par bidirecional)
+        saida.tx_transferencia_id = entrada.id
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao registrar pagamento: {e}")
+
+    return {
+        "status": "ok",
+        "mensagem": f"Fatura de R$ {dados.valor:.2f} paga com sucesso",
+        "saida_id": saida.id,
+        "entrada_id": entrada.id,
+    }
 
 @app.get("/limites/")
 def listar_limites(usuario_id: int, db: Session = Depends(database.get_db)):
@@ -455,10 +603,14 @@ def resumo_financeiro(
     prefixo = _prefixo_data(ano, mes)
 
     def calc(tipo, sinal):
+        # Exclui "Transferência Interna" do cálculo: movimentações entre contas
+        # do próprio usuário (ex: pagamento de fatura de cartão) não são nem
+        # receita nem despesa real — inflaria os cards da sidebar.
         q = db.query(func.sum(models.Transacao.valor)).filter(
             models.Transacao.tipo == tipo, models.Transacao.confirmado == True,
             models.Transacao.usuario_id == usuario_id,
-            (models.Transacao.valor > 0 if sinal == "+" else models.Transacao.valor < 0)
+            (models.Transacao.valor > 0 if sinal == "+" else models.Transacao.valor < 0),
+            models.Transacao.categoria != "Transferência Interna",
         )
         if prefixo:
             q = q.filter(models.Transacao.data.like(f"{prefixo}%"))
