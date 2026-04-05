@@ -306,14 +306,26 @@ components.html("""
     }
 
     function abrirSidebar() {
+        // Limpa o estado "collapsed" do localStorage do Streamlit.
+        // O Streamlit 1.56+ guarda em "stSidebarCollapsed-{appId}" e
+        // sobrescreve qualquer mudança DOM no próximo re-render se o
+        // localStorage ainda disser "collapsed".
+        var keys = Object.keys(window.parent.localStorage);
+        for (var i = 0; i < keys.length; i++) {
+            if (keys[i].indexOf('stSidebarCollapsed') === 0) {
+                window.parent.localStorage.removeItem(keys[i]);
+            }
+        }
+        // Força re-render do Streamlit via rerun
         var sidebar = doc.querySelector('[data-testid="stSidebar"]');
-        if (!sidebar) return;
-        sidebar.setAttribute('aria-expanded', 'true');
-        sidebar.style.transition = 'transform 0.3s ease';
-        sidebar.style.transform = 'none';
-        sidebar.style.visibility = 'visible';
-        sidebar.style.marginLeft = '0';
-        sidebar.style.width = '';
+        if (sidebar) {
+            sidebar.setAttribute('aria-expanded', 'true');
+            sidebar.style.transform = 'none';
+            sidebar.style.visibility = 'visible';
+            sidebar.style.marginLeft = '0';
+        }
+        // Dispara um resize pra forçar o Streamlit a recalcular layout
+        window.parent.dispatchEvent(new Event('resize'));
     }
 
     function criarBotoes() {
