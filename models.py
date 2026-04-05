@@ -7,6 +7,7 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String)
     email = Column(String, unique=True)
+    senha_hash = Column(String, nullable=True)
     contas = relationship("ContaBancaria", back_populates="dono")
 
 class ContaBancaria(Base):
@@ -29,9 +30,22 @@ class Transacao(Base):
     categoria = Column(String)
     tipo = Column(String) # PF ou PJ
     confirmado = Column(Boolean, default=False)
-    
+
     # AGORA O GASTO É LIGADO A UMA CONTA ESPECÍFICA
     conta_id = Column(Integer, ForeignKey("contas.id"))
     conta = relationship("ContaBancaria", back_populates="transacoes")
-    
+
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+
+class Categoria(Base):
+    __tablename__ = "categorias"
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, unique=True)
+    tipo = Column(String, default="Ambos")  # PF, PJ, ou Ambos
+    
+class LimiteCategoria(Base):
+    __tablename__ = "limites_categorias"
+    id = Column(Integer, primary_key=True, index=True)
+    categoria = Column(String, unique=True, index=True)
+    valor_teto = Column(Float)
+    usuario_id = Column(Integer)    

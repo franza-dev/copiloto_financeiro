@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pydantic
+streamlit
+requests
+pandas
+plotly
+google-generativeai
+python-dotenv
