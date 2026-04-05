@@ -337,14 +337,17 @@ LISTA_BASE = [
 ]
 
 # --- ABAS ---
-aba_dashboard, aba_extrato, aba_contas = st.tabs(["🏠 Painel de Controle", "🧾 Extrato", "🏦 Minhas Contas"])
+aba_dashboard, aba_extrato, aba_contas, aba_categorias = st.tabs(["🏠 Painel de Controle", "🧾 Extrato", "🏦 Minhas Contas", "📂 Categorias e Metas"])
 
 # ==========================================
 # ABA 1: PAINEL DE CONTROLE
 # ==========================================
 with aba_dashboard:
     st.write("### 📝 O que você gastou hoje?")
-    texto_input = st.text_input("Descreva o gasto", placeholder="Ex: Gastei 45 reais com Uber para ir na reunião PJ")
+    col_txt, col_audio = st.columns([3, 1])
+    texto_input = col_txt.text_input("Descreva o gasto", placeholder="Ex: Gastei 45 reais com Uber para ir na reunião PJ")
+    audio_input = col_audio.file_uploader("🎙️ Ou envie um áudio", type=["mp3", "wav", "m4a", "ogg", "webm"], label_visibility="visible")
+
     if st.button("Lançar com IA", use_container_width=True):
         if texto_input:
             with st.spinner("O Gemini está analisando sua frase..."):
@@ -354,8 +357,20 @@ with aba_dashboard:
                     st.rerun()
                 else:
                     st.error("Erro ao falar com a IA.")
+        elif audio_input:
+            with st.spinner("O Gemini está analisando seu áudio..."):
+                res_audio = requests.post(
+                    f"{API_URL}/transacoes/ia/audio",
+                    params={"usuario_id": USUARIO_ID},
+                    files={"file": (audio_input.name, audio_input.getvalue(), audio_input.type)}
+                )
+                if res_audio.status_code == 200:
+                    st.success("Áudio processado! Verifique a Quarentena.")
+                    st.rerun()
+                else:
+                    st.error("Erro ao processar o áudio.")
         else:
-            st.warning("Escreva algo antes de enviar.")
+            st.warning("Escreva algo ou envie um áudio antes de lançar.")
     st.divider()
 
     st.write("### 📂 Importar Extrato (CSV)")
@@ -615,3 +630,99 @@ with aba_contas:
             del st.session_state.usuario_id
             del st.session_state.usuario_nome
             st.rerun()
+
+# ==========================================
+# ABA 4: CATEGORIAS E METAS
+# ==========================================
+with aba_categorias:
+    st.write("### 📂 Categorias e Metas de Gastos")
+
+    col_esq, col_dir = st.columns(2)
+
+    with col_esq:
+        st.write("#### ➕ Nova Categoria")
+        with st.form("form_nova_categoria", clear_on_submit=True):
+            nome_cat_new = st.text_input("Nome", placeholder="Ex: Saúde e Bem-Estar")
+            tipo_cat_new = st.selectbox("Aplica-se a", ["Ambos", "PJ", "PF"])
+            if st.form_submit_button("Salvar Categoria", type="primary"):
+                if nome_cat_new.strip():
+                    res_cat = requests.post(f"{API_URL}/categorias", json={"nome": nome_cat_new.strip(), "tipo": tipo_cat_new})
+                    if res_cat.status_code == 200:
+                        st.success(f"Categoria '{nome_cat_new}' criada!")
+                        st.rerun()
+                    elif res_cat.status_code == 400:
+                        st.warning("Essa categoria já existe.")
+                    else:
+                        st.error("Erro ao salvar categoria.")
+                else:
+                    st.warning("Digite um nome para a categoria.")
+
+        st.divider()
+        st.write("#### 🗂️ Categorias Personalizadas")
+        try:
+            req_cats_page = requests.get(f"{API_URL}/categorias")
+            if req_cats_page.status_code == 200:
+                cats_lista = req_cats_page.json()
+                if cats_lista:
+                    for cat in cats_lista:
+                        c_nome, c_tipo, c_del = st.columns([3, 1, 1])
+                        c_nome.write(f"**{cat['nome']}**")
+                        c_tipo.caption(cat['tipo'])
+                        if c_del.button("🗑️", key=f"del_cat_{cat['id']}", help="Remover"):
+                            if requests.delete(f"{API_URL}/categorias/{cat['id']}").status_code == 200:
+                                st.rerun()
+                else:
+                    st.info("Nenhuma categoria personalizada cadastrada.")
+        except:
+            st.error("Erro ao carregar categorias.")
+
+        with st.expander("Ver Categorias Padrão do Sistema"):
+            for cat in sorted(LISTA_BASE):
+                st.write(f"• {cat}")
+
+    with col_dir:
+        st.write("#### 🎯 Definir Teto de Gastos")
+        st.caption("Defina um limite mensal por categoria para acompanhar no Dashboard.")
+
+        # Monta lista com padrão + personalizadas
+        lista_categorias = LISTA_BASE.copy()
+        try:
+            req_cats = requests.get(f"{API_URL}/categorias")
+            if req_cats.status_code == 200:
+                for c in req_cats.json():
+                    if c['nome'] not in lista_categorias:
+                        lista_categorias.append(c['nome'])
+            lista_categorias = sorted(lista_categorias)
+        except:
+            pass
+
+        with st.form("form_meta"):
+            cat_escolhida = st.selectbox("Categoria", lista_categorias)
+            teto_valor = st.number_input("Valor Máximo (R$)", min_value=0.0, step=50.0)
+            if st.form_submit_button("Salvar Meta 🎯", type="primary", use_container_width=True):
+                if teto_valor > 0:
+                    payload_meta = {"categoria": cat_escolhida, "valor_teto": float(teto_valor), "usuario_id": USUARIO_ID}
+                    res_meta = requests.post(f"{API_URL}/limites/", json=payload_meta)
+                    if res_meta.status_code == 200:
+                        st.success(f"Teto de R$ {teto_valor:,.2f} definido para {cat_escolhida}!")
+                        st.rerun()
+                    else:
+                        st.error("Erro ao salvar a meta.")
+                else:
+                    st.warning("Defina um valor maior que zero.")
+
+        st.divider()
+        st.write("#### 📊 Seus Limites Atuais")
+        try:
+            req_limites = requests.get(f"{API_URL}/limites/", params={"usuario_id": USUARIO_ID})
+            if req_limites.status_code == 200:
+                limites_lista = req_limites.json()
+                if limites_lista:
+                    for limite in limites_lista:
+                        l_nome, l_valor = st.columns([3, 2])
+                        l_nome.write(f"**{limite['categoria']}**")
+                        l_valor.write(f"R$ {limite['valor_teto']:,.2f}")
+                else:
+                    st.info("Nenhum teto de gastos definido ainda.")
+        except:
+            st.caption("Aguardando comunicação com a API...")

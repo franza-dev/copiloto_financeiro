@@ -208,15 +208,15 @@ def criar_transacao_texto(texto: str, usuario_id: int, db: Session = Depends(dat
     return processar_e_salvar_ia(dados_ia, db, usuario_id)
 
 @app.post("/transacoes/ia/audio")
-async def criar_transacao_audio(file: UploadFile = File(...), db: Session = Depends(database.get_db)):
+async def criar_transacao_audio(usuario_id: int, file: UploadFile = File(...), db: Session = Depends(database.get_db)):
     temp_path = f"temp_{file.filename}"
     with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
+
     dados_ia = ia_engine.processar_audio_ia(temp_path)
     if os.path.exists(temp_path): os.remove(temp_path)
-    
-    return processar_e_salvar_ia(dados_ia, db, usuario_id=1)
+
+    return processar_e_salvar_ia(dados_ia, db, usuario_id=usuario_id)
 
 # --- 4. GESTÃO DE TRANSAÇÕES (QUARENTENA, HISTÓRICO, EDIÇÃO) ---
 
