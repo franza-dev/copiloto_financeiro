@@ -10,3 +10,4 @@ plotly
 google-genai
 python-dotenv
 python-multipart
+extra-streamlit-components

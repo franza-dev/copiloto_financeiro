@@ -3,10 +3,17 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
+import extra_streamlit_components as stx
 
 st.set_page_config(page_title="Copiloto Financeiro IA", page_icon="💰", layout="wide")
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
+
+@st.cache_resource
+def get_cookie_manager():
+    return stx.CookieManager()
+
+cookie_manager = get_cookie_manager()
 
 st.markdown("""
     <style>
@@ -165,8 +172,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# AUTENTICAÇÃO
+# AUTENTICAÇÃO — restaura sessão do cookie
 # ==========================================
+if "usuario_id" not in st.session_state:
+    cookie_id   = cookie_manager.get("usuario_id")
+    cookie_nome = cookie_manager.get("usuario_nome")
+    if cookie_id and cookie_nome:
+        st.session_state.usuario_id   = int(cookie_id)
+        st.session_state.usuario_nome = cookie_nome
+
 if "usuario_id" not in st.session_state:
     _, col, _ = st.columns([1, 1.1, 1])
     with col:
@@ -206,8 +220,10 @@ if "usuario_id" not in st.session_state:
                         res = requests.post(f"{API_URL}/auth/login", json={"email": email, "senha": senha})
                         if res.status_code == 200:
                             u = res.json()
-                            st.session_state.usuario_id = u["id"]
+                            st.session_state.usuario_id   = u["id"]
                             st.session_state.usuario_nome = u["nome"]
+                            cookie_manager.set("usuario_id",   str(u["id"]),  key="set_id_login")
+                            cookie_manager.set("usuario_nome", u["nome"],     key="set_nome_login")
                             st.rerun()
                         elif res.status_code == 401:
                             st.session_state.auth_msg = {"tipo": "erro", "texto": "E-mail ou senha incorretos."}
@@ -244,8 +260,10 @@ if "usuario_id" not in st.session_state:
                             res = requests.post(f"{API_URL}/auth/registrar", json={"nome": nome_reg, "email": email_reg, "senha": senha_reg})
                             if res.status_code == 200:
                                 u = res.json()
-                                st.session_state.usuario_id = u["id"]
+                                st.session_state.usuario_id   = u["id"]
                                 st.session_state.usuario_nome = u["nome"]
+                                cookie_manager.set("usuario_id",   str(u["id"]), key="set_id_reg")
+                                cookie_manager.set("usuario_nome", u["nome"],    key="set_nome_reg")
                                 st.rerun()
                             elif res.status_code == 400:
                                 st.session_state.auth_msg = {"tipo": "erro", "texto": "Este e-mail já está cadastrado."}
@@ -288,6 +306,8 @@ st.markdown(f"""
 # --- SIDEBAR ---
 st.sidebar.markdown(f"**Olá, {st.session_state.usuario_nome}!**")
 if st.sidebar.button("Sair"):
+    cookie_manager.delete("usuario_id",   key="del_id")
+    cookie_manager.delete("usuario_nome", key="del_nome")
     del st.session_state.usuario_id
     del st.session_state.usuario_nome
     st.rerun()
