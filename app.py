@@ -58,52 +58,17 @@ st.markdown("""
             background: transparent !important;
         }
         /* ── SIDEBAR COLAPSÁVEL ──
-           Sidebar pode ser aberta/fechada via botão nativo do Streamlit.
-           Forçamos TUDO relacionado ao collapse control pra ser visível,
-           independente de hierarquia DOM ou versão do Streamlit. */
-        [data-testid="stSidebarCollapsedControl"],
-        [data-testid="stSidebarCollapsedControl"] * {
-            visibility: visible !important;
-            display: flex !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
+           Esconde os botões NATIVOS do Streamlit (que renderizam
+           'keyboard_double_arrow_left' como texto em vez de ícone).
+           O open/close é feito por botões customizados via JS. */
+        [data-testid="stSidebarCollapseButton"] {
+            display: none !important;
         }
         [data-testid="stSidebarCollapsedControl"] {
-            z-index: 999999 !important;
-            position: fixed !important;
-            top: 14px !important;
-            left: 14px !important;
-        }
-        [data-testid="stSidebarCollapseButton"] {
-            display: flex !important;
+            display: none !important;
         }
         [data-testid="stSidebar"] {
             z-index: 999998 !important;
-        }
-
-        /* Botão customizado de fallback — aparece quando a sidebar está
-           fechada, caso o botão nativo do Streamlit não funcione. */
-        .guido-sidebar-toggle {
-            position: fixed;
-            top: 14px;
-            left: 14px;
-            z-index: 1000000;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: var(--guido-green);
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            transition: background 0.15s;
-        }
-        .guido-sidebar-toggle:hover {
-            background: var(--guido-green-deep);
         }
 
         /* Títulos em Georgia serif — DNA da marca */
@@ -310,52 +275,95 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Botão de fallback pra reabrir a sidebar — injetado via components.html()
-# porque st.markdown(unsafe_allow_html=True) REMOVE tags <script> silenciosamente.
-# O components.html() cria um iframe que executa JS de verdade, e de dentro
-# dele acessamos window.parent.document pra manipular a DOM do app principal.
+# Botões customizados de abrir/fechar sidebar — injetados via components.html()
+# porque st.markdown(unsafe_allow_html=True) REMOVE tags <script>.
+# Os botões nativos do Streamlit estão escondidos via CSS porque renderizam
+# "keyboard_double_arrow_left" como texto em vez de ícone.
 import streamlit.components.v1 as components
 components.html("""
 <script>
 (function() {
     var doc = window.parent.document;
+    var STYLE_BASE = 'position:fixed;top:14px;z-index:1000000;width:36px;height:36px;border-radius:10px;background:#1D9E75;color:#fff;border:none;cursor:pointer;font-size:16px;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:all 0.15s;font-family:system-ui,sans-serif;';
 
-    function criarBotao() {
-        if (doc.getElementById('guido-sidebar-btn')) return;
-        var btn = doc.createElement('button');
-        btn.id = 'guido-sidebar-btn';
-        btn.title = 'Abrir menu lateral';
-        btn.innerHTML = '&#9654;';
-        btn.style.cssText = 'position:fixed;top:14px;left:14px;z-index:1000000;width:40px;height:40px;border-radius:10px;background:#1D9E75;color:#fff;border:none;cursor:pointer;font-size:18px;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:background 0.15s;';
-        btn.onmouseover = function(){ btn.style.background='#085041'; };
-        btn.onmouseout = function(){ btn.style.background='#1D9E75'; };
-        btn.onclick = function() {
-            var nativo = doc.querySelector('[data-testid="stSidebarCollapsedControl"] button');
-            if (nativo) { nativo.click(); return; }
+    function fecharSidebar() {
+        var sidebar = doc.querySelector('[data-testid="stSidebar"]');
+        if (!sidebar) return;
+        // Tenta o botão nativo escondido primeiro (método mais limpo)
+        var nativo = sidebar.querySelector('[data-testid="stSidebarCollapseButton"] button')
+                  || sidebar.querySelector('button[aria-label*="Close"]')
+                  || sidebar.querySelector('button[aria-label*="Collapse"]');
+        if (nativo) { nativo.click(); return; }
+        // Fallback manual
+        sidebar.setAttribute('aria-expanded', 'false');
+        sidebar.style.transform = 'translateX(-100%)';
+    }
+
+    function abrirSidebar() {
+        // Tenta o botão nativo escondido primeiro
+        var nativo = doc.querySelector('[data-testid="stSidebarCollapsedControl"] button');
+        if (nativo) { nativo.click(); return; }
+        var sidebar = doc.querySelector('[data-testid="stSidebar"]');
+        if (sidebar) {
+            sidebar.setAttribute('aria-expanded', 'true');
+            sidebar.style.transform = 'none';
+            sidebar.style.visibility = 'visible';
+            sidebar.style.marginLeft = '0';
+        }
+    }
+
+    function criarBotoes() {
+        // Botão FECHAR — dentro da sidebar, canto superior direito
+        if (!doc.getElementById('guido-close-btn')) {
+            var close = doc.createElement('button');
+            close.id = 'guido-close-btn';
+            close.title = 'Fechar menu';
+            close.innerHTML = '&#10005;';  // ✕
+            close.style.cssText = STYLE_BASE + 'display:none;right:12px;left:auto;';
+            close.onmouseover = function(){ close.style.background='#085041'; };
+            close.onmouseout = function(){ close.style.background='#1D9E75'; };
+            close.onclick = fecharSidebar;
+            // Insere no topo da sidebar pra ficar "dentro" visualmente
             var sidebar = doc.querySelector('[data-testid="stSidebar"]');
             if (sidebar) {
-                sidebar.setAttribute('aria-expanded', 'true');
-                sidebar.style.transform = 'none';
-                sidebar.style.visibility = 'visible';
-                sidebar.style.marginLeft = '0';
-                sidebar.style.width = '';
+                close.style.position = 'absolute';
+                close.style.top = '12px';
+                close.style.right = '12px';
+                close.style.left = 'auto';
+                sidebar.style.position = 'relative';
+                sidebar.insertBefore(close, sidebar.firstChild);
+            } else {
+                doc.body.appendChild(close);
             }
-        };
-        doc.body.appendChild(btn);
+        }
+
+        // Botão ABRIR — fixo na tela, logo à direita de onde a sidebar estaria
+        if (!doc.getElementById('guido-open-btn')) {
+            var open = doc.createElement('button');
+            open.id = 'guido-open-btn';
+            open.title = 'Abrir menu lateral';
+            open.innerHTML = '&#9776;';  // ☰ hamburger
+            open.style.cssText = STYLE_BASE + 'display:none;left:14px;';
+            open.onmouseover = function(){ open.style.background='#085041'; };
+            open.onmouseout = function(){ open.style.background='#1D9E75'; };
+            open.onclick = abrirSidebar;
+            doc.body.appendChild(open);
+        }
     }
 
-    function verificar() {
-        criarBotao();
-        var btn = doc.getElementById('guido-sidebar-btn');
-        if (!btn) return;
+    function atualizar() {
+        criarBotoes();
         var sidebar = doc.querySelector('[data-testid="stSidebar"]');
-        if (!sidebar) { btn.style.display = 'flex'; return; }
-        var expandida = sidebar.getAttribute('aria-expanded');
-        var visivel = expandida !== 'false';
-        btn.style.display = visivel ? 'none' : 'flex';
+        var btnClose = doc.getElementById('guido-close-btn');
+        var btnOpen = doc.getElementById('guido-open-btn');
+        if (!btnClose || !btnOpen) return;
+
+        var expandida = sidebar && sidebar.getAttribute('aria-expanded') !== 'false';
+        btnClose.style.display = expandida ? 'flex' : 'none';
+        btnOpen.style.display = expandida ? 'none' : 'flex';
     }
 
-    setInterval(verificar, 400);
+    setInterval(atualizar, 400);
 })();
 </script>
 """, height=0)
