@@ -58,18 +58,52 @@ st.markdown("""
             background: transparent !important;
         }
         /* ── SIDEBAR COLAPSÁVEL ──
-           Botão seta nativo do Streamlit pra abrir/fechar em qualquer tela.
-           Quando fechada, só a seta fica visível no canto. */
-        [data-testid="stSidebarCollapsedControl"] {
+           Sidebar pode ser aberta/fechada via botão nativo do Streamlit.
+           Forçamos TUDO relacionado ao collapse control pra ser visível,
+           independente de hierarquia DOM ou versão do Streamlit. */
+        [data-testid="stSidebarCollapsedControl"],
+        [data-testid="stSidebarCollapsedControl"] * {
             visibility: visible !important;
             display: flex !important;
-            z-index: 999 !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] {
+            z-index: 999999 !important;
+            position: fixed !important;
+            top: 14px !important;
+            left: 14px !important;
         }
         [data-testid="stSidebarCollapseButton"] {
             display: flex !important;
         }
         [data-testid="stSidebar"] {
-            z-index: 998 !important;
+            z-index: 999998 !important;
+        }
+
+        /* Botão customizado de fallback — aparece quando a sidebar está
+           fechada, caso o botão nativo do Streamlit não funcione. */
+        .guido-sidebar-toggle {
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 1000000;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--guido-green);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: background 0.15s;
+        }
+        .guido-sidebar-toggle:hover {
+            background: var(--guido-green-deep);
         }
 
         /* Títulos em Georgia serif — DNA da marca */
@@ -274,6 +308,57 @@ st.markdown("""
             font-style: italic;
         }
     </style>
+
+    <script>
+    // Botão de fallback pra reabrir a sidebar quando o nativo do Streamlit
+    // fica escondido por algum quirk de DOM. Monitora o estado da sidebar
+    // a cada 500ms e mostra/esconde o botão conforme necessário.
+    (function() {
+        function criarBotao() {
+            if (document.getElementById('guido-sidebar-btn')) return;
+            var btn = document.createElement('button');
+            btn.id = 'guido-sidebar-btn';
+            btn.className = 'guido-sidebar-toggle';
+            btn.innerHTML = '&#9654;';  // ▶
+            btn.title = 'Abrir menu lateral';
+            btn.style.display = 'none';
+            btn.onclick = function() {
+                // Tenta clicar no botão nativo do Streamlit
+                var nativo = document.querySelector('[data-testid="stSidebarCollapsedControl"] button')
+                           || document.querySelector('[data-testid="stSidebarCollapsedControl"]');
+                if (nativo) { nativo.click(); return; }
+                // Fallback: muda o atributo diretamente
+                var sidebar = document.querySelector('[data-testid="stSidebar"]');
+                if (sidebar) {
+                    sidebar.setAttribute('aria-expanded', 'true');
+                    sidebar.style.transform = 'none';
+                    sidebar.style.visibility = 'visible';
+                    sidebar.style.marginLeft = '0';
+                }
+            };
+            document.body.appendChild(btn);
+        }
+
+        function verificar() {
+            criarBotao();
+            var btn = document.getElementById('guido-sidebar-btn');
+            if (!btn) return;
+            var sidebar = document.querySelector('[data-testid="stSidebar"]');
+            if (!sidebar) { btn.style.display = 'flex'; return; }
+            var expandida = sidebar.getAttribute('aria-expanded');
+            var transform = window.getComputedStyle(sidebar).transform;
+            var visivel = (expandida !== 'false') && (transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)');
+            btn.style.display = visivel ? 'none' : 'flex';
+        }
+
+        // Espera o Streamlit renderizar
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() { setInterval(verificar, 500); });
+        } else {
+            setInterval(verificar, 500);
+        }
+    })();
+    </script>
 """, unsafe_allow_html=True)
 
 # ==========================================
