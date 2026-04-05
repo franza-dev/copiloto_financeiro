@@ -270,9 +270,44 @@ def deletar_categoria(categoria_id: int, db: Session = Depends(database.get_db))
 
 # --- 3. O CORAÇÃO: INTELIGÊNCIA ARTIFICIAL (TEXTO E ÁUDIO) ---
 
+def _contas_do_usuario_para_ia(db: Session, usuario_id: int) -> List[dict]:
+    """Formata as contas do usuário como lista de dicts pra injetar no prompt da IA.
+    Inclui modalidade pra IA conseguir distinguir conta corrente de cartão."""
+    contas = db.query(models.ContaBancaria).filter(
+        models.ContaBancaria.usuario_id == usuario_id
+    ).all()
+    return [
+        {
+            "id": c.id,
+            "nome": c.nome,
+            "banco": c.banco,
+            "tipo": c.tipo,
+            "modalidade": c.modalidade or "corrente",
+        }
+        for c in contas
+    ]
+
+
+def _validar_conta_do_usuario(db: Session, conta_id, usuario_id: int) -> Optional[int]:
+    """Garante que o conta_id retornado pela IA realmente pertence ao usuário.
+    Proteção defensiva: se a IA alucinar um id (ou um id de outro usuário),
+    descartamos e caímos no fallback. Retorna o id válido ou None."""
+    if conta_id is None:
+        return None
+    try:
+        conta_id = int(conta_id)
+    except (TypeError, ValueError):
+        return None
+    conta = db.query(models.ContaBancaria).filter(
+        models.ContaBancaria.id == conta_id,
+        models.ContaBancaria.usuario_id == usuario_id,
+    ).first()
+    return conta.id if conta else None
+
+
 def processar_e_salvar_ia(dados_ia, db, usuario_id):
     """Lógica unificada para salvar o que a IA interpretou"""
-    
+
     # CASO A: Definir Teto/Limite
     if dados_ia.get('natureza') == 'config_limite':
         limite = db.query(models.LimiteCategoria).filter(models.LimiteCategoria.categoria == dados_ia['categoria']).first()
@@ -285,20 +320,27 @@ def processar_e_salvar_ia(dados_ia, db, usuario_id):
 
     # CASO B: Lançamento de Transação
     hoje = date.today().isoformat()
-    conta_id = None
-    
-    # Busca conta por nome ou banco
-    if dados_ia.get('banco'):
+
+    # 1. Preferência: conta_id escolhido pela IA com contexto injetado.
+    #    Sempre valida que a conta pertence ao usuário (defesa em profundidade).
+    conta_id = _validar_conta_do_usuario(db, dados_ia.get('conta_id'), usuario_id)
+
+    # 2. Fallback: se a IA não conseguiu escolher (ou escolheu inválido), tenta
+    #    o matching fuzzy antigo por nome/banco. Mantido pra garantir que mesmo
+    #    falhas de contexto do modelo não regridam o comportamento anterior.
+    if conta_id is None and dados_ia.get('banco'):
         termo = dados_ia['banco'].lower()
         conta = db.query(models.ContaBancaria).filter(
             (models.ContaBancaria.nome.ilike(f"%{termo}%")) | (models.ContaBancaria.banco.ilike(f"%{termo}%")),
-            models.ContaBancaria.tipo == dados_ia.get('tipo', 'PF')
+            models.ContaBancaria.tipo == dados_ia.get('tipo', 'PF'),
+            models.ContaBancaria.usuario_id == usuario_id,
         ).first()
-        if conta: conta_id = conta.id
+        if conta:
+            conta_id = conta.id
 
     # Decide se vai direto ou quarentena
-    vai_direto = True if (dados_ia.get('categoria') and conta_id) else False
-    
+    vai_direto = True if (dados_ia.get('categoria') and dados_ia.get('categoria') != 'A Classificar' and conta_id) else False
+
     # Ajuste de sinal matemático
     valor_final = -abs(float(dados_ia.get('valor', 0))) if dados_ia.get('natureza') == 'saida' else abs(float(dados_ia.get('valor', 0)))
 
@@ -315,13 +357,14 @@ def processar_e_salvar_ia(dados_ia, db, usuario_id):
     )
     db.add(nova_tx)
     db.commit()
-    
+
     msg = "⚡ Lançado direto!" if vai_direto else "⏳ Enviado para a Quarentena"
     return {"status": msg, "dados": dados_ia, "confirmado_automaticamente": vai_direto}
 
 @app.post("/transacoes/ia")
 def criar_transacao_texto(texto: str, usuario_id: int, db: Session = Depends(database.get_db)):
-    dados_ia = ia_engine.processar_texto_ia(texto)
+    contas_contexto = _contas_do_usuario_para_ia(db, usuario_id)
+    dados_ia = ia_engine.processar_texto_ia(texto, contas=contas_contexto)
     return processar_e_salvar_ia(dados_ia, db, usuario_id)
 
 @app.post("/transacoes/ia/audio")
@@ -330,7 +373,8 @@ async def criar_transacao_audio(usuario_id: int, file: UploadFile = File(...), d
     with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    dados_ia = ia_engine.processar_audio_ia(temp_path)
+    contas_contexto = _contas_do_usuario_para_ia(db, usuario_id)
+    dados_ia = ia_engine.processar_audio_ia(temp_path, contas=contas_contexto)
     if os.path.exists(temp_path): os.remove(temp_path)
 
     return processar_e_salvar_ia(dados_ia, db, usuario_id=usuario_id)
