@@ -48,7 +48,19 @@ st.markdown("""
             background-color: var(--guido-night) !important;
             color: var(--guido-text-primary) !important;
         }
-        #MainMenu, footer, header { visibility: hidden; }
+        /* Esconde elementos do chrome do Streamlit MAS mantém o header visível,
+           porque é dentro dele que fica o botão de reabrir a sidebar colapsada. */
+        #MainMenu { display: none !important; }
+        footer { display: none !important; }
+        [data-testid="stToolbar"] { display: none !important; }
+        header[data-testid="stHeader"] {
+            background: transparent !important;
+        }
+        /* Garante que o botão de reabrir sidebar fica sempre clicável */
+        [data-testid="stSidebarCollapsedControl"] {
+            visibility: visible !important;
+            display: flex !important;
+        }
 
         /* Títulos em Georgia serif — DNA da marca */
         h1 {
@@ -263,14 +275,17 @@ st.markdown("""
 def logo_guido_svg(width: int = 200, color_g: str = "#1D9E75", color_word: str = "#F7F5F0", color_glasses: str | None = None) -> str:
     """Logo oficial Guido (óculos + Guido horizontal).
 
-    `width`: largura em px. Altura é calculada proporcionalmente (210:145).
+    `width`: largura em px. Altura é calculada proporcionalmente (260:145).
     `color_word`: cor da parte "uido" — use #111827 em fundo claro, #F7F5F0 em escuro.
     `color_glasses`: cor dos óculos — default igual ao G.
+
+    Nota: viewBox width é 260 (não 210 como no manual) porque o 'uido' em Georgia 86px
+    com letter-spacing -2 estende até x≈241, então precisamos de folga à direita.
     """
     if color_glasses is None:
         color_glasses = color_g
-    h = int(width * 145 / 210)
-    return f'''<svg width="{width}" height="{h}" viewBox="0 0 210 145" xmlns="http://www.w3.org/2000/svg">
+    h = int(width * 145 / 260)
+    return f'''<svg width="{width}" height="{h}" viewBox="0 0 260 145" xmlns="http://www.w3.org/2000/svg" overflow="visible">
         <line x1="26" y1="21" x2="4" y2="10" stroke="{color_glasses}" stroke-width="2.2" stroke-linecap="round"/>
         <rect x="26" y="14" width="36" height="25" rx="6" fill="none" stroke="{color_glasses}" stroke-width="2.2"/>
         <line x1="62" y1="26" x2="88" y2="26" stroke="{color_glasses}" stroke-width="2.2" stroke-linecap="round"/>
