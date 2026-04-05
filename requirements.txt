@@ -3,7 +3,7 @@ uvicorn
 sqlalchemy
 psycopg2-binary
 pydantic
-streamlit
+streamlit>=1.31.0
 requests
 pandas
 plotly

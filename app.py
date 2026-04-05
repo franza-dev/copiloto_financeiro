@@ -344,9 +344,8 @@ aba_dashboard, aba_extrato, aba_contas, aba_categorias = st.tabs(["🏠 Painel d
 # ==========================================
 with aba_dashboard:
     st.write("### 📝 O que você gastou hoje?")
-    col_txt, col_audio = st.columns([3, 1])
-    texto_input = col_txt.text_input("Descreva o gasto", placeholder="Ex: Gastei 45 reais com Uber para ir na reunião PJ")
-    audio_input = col_audio.file_uploader("🎙️ Ou envie um áudio", type=["mp3", "wav", "m4a", "ogg", "webm"], label_visibility="visible")
+    texto_input = st.text_input("Descreva o gasto", placeholder="Ex: Gastei 45 reais com Uber para ir na reunião PJ")
+    audio_input = st.audio_input("🎙️ Ou grave um áudio")
 
     if st.button("Lançar com IA", use_container_width=True):
         if texto_input:
@@ -362,7 +361,7 @@ with aba_dashboard:
                 res_audio = requests.post(
                     f"{API_URL}/transacoes/ia/audio",
                     params={"usuario_id": USUARIO_ID},
-                    files={"file": (audio_input.name, audio_input.getvalue(), audio_input.type)}
+                    files={"file": ("audio.wav", audio_input.getvalue(), "audio/wav")}
                 )
                 if res_audio.status_code == 200:
                     st.success("Áudio processado! Verifique a Quarentena.")
@@ -370,7 +369,7 @@ with aba_dashboard:
                 else:
                     st.error("Erro ao processar o áudio.")
         else:
-            st.warning("Escreva algo ou envie um áudio antes de lançar.")
+            st.warning("Escreva algo ou grave um áudio antes de lançar.")
     st.divider()
 
     st.write("### 📂 Importar Extrato (CSV)")
