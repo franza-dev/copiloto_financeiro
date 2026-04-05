@@ -29,7 +29,11 @@ with database.engine.connect() as _conn:
         _conn.commit()
     except: pass # Já existe
 
-app = FastAPI(title="Copiloto Financeiro API v3.0")
+app = FastAPI(
+    title="Guido API",
+    description="Seu braço direito pra separar o dinheiro da casa do dinheiro do negócio. chamaoguido.com.br",
+    version="1.0.0",
+)
 
 # --- SCHEMAS (Envelopes Pydantic) ---
 class ConfirmacaoGasto(BaseModel):
