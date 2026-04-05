@@ -57,26 +57,19 @@ st.markdown("""
         header[data-testid="stHeader"] {
             background: transparent !important;
         }
-        /* Sidebar do Guido é FIXA — travada visível mesmo quando o
-           localStorage do navegador guarda o estado 'collapsed' de sessões
-           antigas. Sobrescreve o transform que o Streamlit aplica pra
-           esconder a sidebar e força ela a ocupar o espaço reservado. */
-        [data-testid="stSidebar"] {
-            transform: none !important;
+        /* ── SIDEBAR COLAPSÁVEL ──
+           Botão seta nativo do Streamlit pra abrir/fechar em qualquer tela.
+           Quando fechada, só a seta fica visível no canto. */
+        [data-testid="stSidebarCollapsedControl"] {
             visibility: visible !important;
-            margin-left: 0 !important;
-            min-width: 244px !important;
+            display: flex !important;
+            z-index: 999 !important;
         }
-        [data-testid="stSidebar"][aria-expanded="false"] {
-            transform: none !important;
-            visibility: visible !important;
-            margin-left: 0 !important;
-        }
-        /* Esconde o botão de colapsar (dentro da sidebar) pra usuário
-           não conseguir fechar. Seletor específico pra não afetar outros
-           botões do header. */
         [data-testid="stSidebarCollapseButton"] {
-            display: none !important;
+            display: flex !important;
+        }
+        [data-testid="stSidebar"] {
+            z-index: 998 !important;
         }
 
         /* Títulos em Georgia serif — DNA da marca */
