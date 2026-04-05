@@ -108,8 +108,8 @@ def listar_contas(usuario_id: int, db: Session = Depends(database.get_db)):
     return db.query(models.ContaBancaria).filter(models.ContaBancaria.usuario_id == usuario_id).all()
 
 @app.get("/limites/")
-def listar_limites(db: Session = Depends(database.get_db)):
-    return db.query(models.LimiteCategoria).all()
+def listar_limites(usuario_id: int, db: Session = Depends(database.get_db)):
+    return db.query(models.LimiteCategoria).filter(models.LimiteCategoria.usuario_id == usuario_id).all()
 
 @app.post("/limites/")
 def definir_limite_manual(dados: LimiteCreate, db: Session = Depends(database.get_db)):
@@ -221,8 +221,8 @@ async def criar_transacao_audio(file: UploadFile = File(...), db: Session = Depe
 # --- 4. GESTÃO DE TRANSAÇÕES (QUARENTENA, HISTÓRICO, EDIÇÃO) ---
 
 @app.get("/transacoes/quarentena")
-def listar_quarentena(db: Session = Depends(database.get_db)):
-    q = db.query(models.Transacao).filter(models.Transacao.confirmado == False).all()
+def listar_quarentena(usuario_id: int, db: Session = Depends(database.get_db)):
+    q = db.query(models.Transacao).filter(models.Transacao.confirmado == False, models.Transacao.usuario_id == usuario_id).all()
     return {"transacoes": q}
 
 @app.patch("/transacoes/{transacao_id}/confirmar")
@@ -255,30 +255,31 @@ def apagar_transacao(transacao_id: int, db: Session = Depends(database.get_db)):
     return {"status": "Apagado"}
 
 @app.get("/transacoes/historico")
-def listar_historico(db: Session = Depends(database.get_db)):
-    return db.query(models.Transacao).filter(models.Transacao.confirmado == True).order_by(models.Transacao.id.desc()).all()
+def listar_historico(usuario_id: int, db: Session = Depends(database.get_db)):
+    return db.query(models.Transacao).filter(models.Transacao.confirmado == True, models.Transacao.usuario_id == usuario_id).order_by(models.Transacao.id.desc()).all()
 
 # --- 5. DASHBOARD E SISTEMA ---
 
 @app.get("/dashboard/resumo")
-def resumo_financeiro(db: Session = Depends(database.get_db)):
+def resumo_financeiro(usuario_id: int, db: Session = Depends(database.get_db)):
     def calc(tipo, sinal):
         return db.query(func.sum(models.Transacao.valor)).filter(
             models.Transacao.tipo == tipo, models.Transacao.confirmado == True,
+            models.Transacao.usuario_id == usuario_id,
             (models.Transacao.valor > 0 if sinal == "+" else models.Transacao.valor < 0)
         ).scalar() or 0
 
     rpj, dpj = calc("PJ", "+"), calc("PJ", "-")
     rpf, dpf = calc("PF", "+"), calc("PF", "-")
-    
+
     return {
         "pj": {"receitas": f"R$ {rpj:.2f}", "despesas": f"R$ {abs(dpj):.2f}", "saldo": f"R$ {rpj+dpj:.2f}"},
         "pf": {"receitas": f"R$ {rpf:.2f}", "despesas": f"R$ {abs(dpf):.2f}", "saldo": f"R$ {rpf+dpf:.2f}"}
     }
 
 @app.delete("/sistema/resetar-transacoes")
-def resetar_transacoes(db: Session = Depends(database.get_db)):
-    db.query(models.Transacao).delete()
+def resetar_transacoes(usuario_id: int, db: Session = Depends(database.get_db)):
+    db.query(models.Transacao).filter(models.Transacao.usuario_id == usuario_id).delete()
     db.commit()
     return {"status": "Transações zeradas!"}
 
@@ -291,9 +292,8 @@ def recriar_banco():
 # --- ROTAS RESTAURADAS: LOTE (CSV) E LIMPEZA DE QUARENTENA ---
 
 @app.delete("/sistema/limpar-quarentena")
-def limpar_quarentena(db: Session = Depends(database.get_db)):
-    # Deleta apenas o que ainda NÃO foi confirmado
-    db.query(models.Transacao).filter(models.Transacao.confirmado == False).delete()
+def limpar_quarentena(usuario_id: int, db: Session = Depends(database.get_db)):
+    db.query(models.Transacao).filter(models.Transacao.confirmado == False, models.Transacao.usuario_id == usuario_id).delete()
     db.commit()
     return {"mensagem": "Quarentena esvaziada!"}
 
