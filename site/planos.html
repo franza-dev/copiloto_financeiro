@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planos Guido — R$ 19/mês com tudo incluso para MEI</title>
+<meta name="description" content="Um plano. Um preço. Tudo incluso: lançamento por voz, importação de extrato, cartão inteligente, conselheiro financeiro no WhatsApp e mais. Cancele quando quiser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green:    #1D9E75;
+  --green-dk: #085041;
+  --green-lt: #E1F5EE;
+  --green-mid:#9FE1CB;
+  --amber:    #F5A623;
+  --night:    #0D1117;
+  --surface:  #111827;
+  --surface2: #1E293B;
+  --border:   #1E293B;
+  --text:     #F1F5F9;
+  --text2:    #94A3B8;
+  --text3:    #475569;
+  --serif:    'Lora', Georgia, serif;
+  --sans:     'DM Sans', system-ui, sans-serif;
+  --r-md:     10px;
+  --r-lg:     16px;
+  --r-xl:     24px;
+}
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--night); color: var(--text); line-height: 1.6; overflow-x: hidden; }
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,17,23,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem; display: flex; align-items: center; height: 64px; gap: 2rem;
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.nav-logo-text { font-family: var(--serif); font-size: 22px; font-weight: 400; color: var(--text); letter-spacing: -0.5px; }
+.nav-logo-text span { color: var(--green); }
+.nav-links { display: flex; gap: 1.75rem; list-style: none; margin-left: auto; }
+.nav-links a { font-size: 14px; color: var(--text2); text-decoration: none; transition: color 0.15s; }
+.nav-links a:hover { color: var(--text); }
+.nav-links a.active { color: var(--text); font-weight: 500; }
+.nav-cta { background: var(--green) !important; color: #fff !important; padding: 8px 18px; border-radius: 8px; font-weight: 500 !important; white-space: nowrap; transition: background 0.15s !important; }
+.nav-cta:hover { background: var(--green-dk) !important; }
+
+/* SHARED */
+section { padding: 5rem 2rem; }
+.container { max-width: 1100px; margin: 0 auto; }
+.section-label {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--green); margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::before { content: ''; display: block; width: 20px; height: 1px; background: var(--green); }
+.section-label.center { justify-content: center; }
+.section-label.center::before { display: none; }
+h1, h2 { font-family: var(--serif); font-weight: 400; color: var(--text); }
+h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); line-height: 1.15; margin-bottom: 1.25rem; }
+h2 { font-size: clamp(1.6rem, 2.5vw, 2.2rem); line-height: 1.25; margin-bottom: 1rem; }
+h1 em, h2 em { font-style: italic; color: var(--green); }
+.lead { font-size: 17px; color: var(--text2); line-height: 1.75; }
+.btn-primary {
+  display: inline-block; background: var(--green); color: #fff;
+  padding: 16px 32px; border-radius: 10px; font-size: 16px; font-weight: 500;
+  text-decoration: none; transition: background 0.15s, transform 0.1s;
+  text-align: center; cursor: pointer; border: none;
+}
+.btn-primary:hover { background: var(--green-dk); transform: translateY(-1px); }
+.btn-ghost {
+  display: inline-block; color: var(--text2); padding: 14px 20px;
+  border-radius: 10px; font-size: 15px; text-decoration: none;
+  transition: color 0.15s; margin-left: 8px;
+}
+.btn-ghost:hover { color: var(--text); }
+
+/* HERO */
+.hero {
+  background: var(--surface);
+  padding: 6rem 2rem 5rem;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 600px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(29,158,117,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-price-block {
+  display: inline-flex; flex-direction: column; align-items: center;
+  background: var(--night); border: 1.5px solid var(--green);
+  border-radius: var(--r-xl); padding: 2.5rem 4rem;
+  margin: 2.5rem auto;
+  box-shadow: 0 0 60px rgba(29,158,117,0.12);
+  position: relative;
+}
+.hero-badge {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: var(--green); color: #fff;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+  padding: 4px 16px; border-radius: 20px; white-space: nowrap;
+}
+.price-main {
+  font-family: var(--serif);
+  font-size: clamp(4rem, 8vw, 6rem);
+  color: var(--green); font-weight: 400; line-height: 1;
+}
+.price-per { font-size: 16px; color: var(--text2); margin-top: 6px; }
+.hero-guarantee {
+  display: flex; align-items: center; justify-content: center;
+  gap: 2rem; flex-wrap: wrap;
+  margin-top: 1.5rem;
+  font-size: 13px; color: var(--text3);
+}
+.guarantee-item { display: flex; align-items: center; gap: 6px; }
+.guarantee-item::before { content: '✓'; color: var(--green); font-weight: 600; }
+
+/* INCLUDED */
+.included { background: var(--night); }
+.included-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 1rem; margin-top: 2.5rem;
+}
+.included-item {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 1.25rem;
+  transition: border-color 0.15s;
+}
+.included-item:hover { border-color: var(--green); }
+.included-ico {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: rgba(29,158,117,0.1); border: 1px solid rgba(29,158,117,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.included-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+.included-desc  { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+/* COMPARATIVO */
+.compare { background: var(--surface); }
+.compare-table {
+  width: 100%; border-collapse: collapse; margin-top: 2.5rem;
+}
+.compare-table th {
+  padding: 1rem 1.25rem; text-align: left;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--text3);
+  border-bottom: 1px solid var(--border);
+}
+.compare-table th.highlight {
+  color: var(--green);
+  background: rgba(29,158,117,0.05);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+}
+.compare-table td {
+  padding: 1rem 1.25rem;
+  font-size: 14px; color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.compare-table td.feat-name { color: var(--text); font-weight: 400; }
+.compare-table td.highlight { background: rgba(29,158,117,0.03); }
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+.compare-table tr:hover td.highlight { background: rgba(29,158,117,0.06); }
+.check-yes { color: var(--green); font-size: 18px; font-weight: 600; }
+.check-no  { color: var(--text3); font-size: 16px; }
+
+/* FAQ */
+.faq { background: var(--night); }
+.faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2.5rem; }
+.faq-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 1.5rem;
+}
+.faq-q { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 0.6rem; }
+.faq-a { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+/* SOCIAL PROOF */
+.proof { background: var(--surface); }
+.proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-top: 2.5rem; }
+.proof-card {
+  background: var(--night); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 1.5rem;
+  position: relative;
+}
+.proof-card::before {
+  content: '“'; font-family: var(--serif);
+  font-size: 3.5rem; color: var(--green); opacity: 0.25;
+  line-height: 1; position: absolute; top: 0.75rem; right: 1.25rem;
+}
+.proof-text {
+  font-family: var(--serif); font-style: italic;
+  font-size: 14px; color: var(--text); line-height: 1.7; margin-bottom: 1.25rem;
+}
+.proof-author { display: flex; align-items: center; gap: 10px; }
+.proof-av {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--green-lt); display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 500; color: var(--green-dk); font-family: var(--serif);
+}
+.proof-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.proof-role { font-size: 12px; color: var(--text3); }
+
+/* CTA FINAL */
+.cta-final {
+  background: var(--night); text-align: center;
+  border-top: 1px solid var(--border);
+  padding: 6rem 2rem;
+}
+.cta-final h2 { max-width: 560px; margin: 0 auto 1rem; }
+.cta-final .lead { max-width: 440px; margin: 0 auto 2.5rem; }
+.cta-price-inline {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  font-family: var(--serif); font-size: 1.4rem; color: var(--green);
+  background: rgba(29,158,117,0.08); border: 1px solid rgba(29,158,117,0.2);
+  padding: 6px 18px; border-radius: 8px; margin-bottom: 1.5rem;
+}
+
+/* FOOTER */
+footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem 2rem; }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 2rem; margin-bottom: 2.5rem; }
+.footer-brand p { font-size: 13px; color: var(--text3); margin-top: 0.75rem; max-width: 220px; line-height: 1.6; }
+.footer-col-title { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 1rem; }
+.footer-col a { display: block; font-size: 13px; color: var(--text2); text-decoration: none; line-height: 2; transition: color 0.15s; }
+.footer-col a:hover { color: var(--text); }
+.footer-bottom { border-top: 1px solid var(--border); padding-top: 1.5rem; font-size: 12px; color: var(--text3); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+
+@media (max-width: 768px) {
+  nav { padding: 0 1rem; gap: 1rem; }
+  .nav-links { display: none; }
+  section { padding: 3.5rem 1.5rem; }
+  .hero { padding: 4rem 1.5rem 3.5rem; }
+  .hero-price-block { padding: 2rem 2rem; }
+  .included-grid { grid-template-columns: 1fr; }
+  .faq-grid { grid-template-columns: 1fr; }
+  .proof-grid { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr 1fr; }
+  .compare-table { font-size: 13px; }
+  .compare-table th, .compare-table td { padding: 0.75rem; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero > * { animation: fadeUp 0.6s ease both; }
+.hero > *:nth-child(1) { animation-delay: 0.05s; }
+.hero > *:nth-child(2) { animation-delay: 0.15s; }
+.hero > *:nth-child(3) { animation-delay: 0.25s; }
+.hero > *:nth-child(4) { animation-delay: 0.32s; }
+.hero > *:nth-child(5) { animation-delay: 0.38s; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <svg width="32" height="22" viewBox="0 0 155 52" xmlns="http://www.w3.org/2000/svg">
+      <line x1="18" y1="17" x2="2" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+      <rect x="18" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+      <line x1="58" y1="22" x2="97" y2="22" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+      <rect x="97" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+      <line x1="137" y1="17" x2="153" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+    <span class="nav-logo-text"><span>G</span>uido</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/como-funciona">Como funciona</a></li>
+    <li><a href="/funcionalidades">Funcionalidades</a></li>
+    <li><a href="/planos" class="active">Planos</a></li>
+    <li><a href="/blog">Blog</a></li>
+    <li><a href="/faq">FAQ</a></li>
+    <li><a href="#assinar" class="nav-cta">Assinar por R$&nbsp;19/mês</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="section-label center">Planos</div>
+    <h1>Simples assim:<br>um plano. Um preço.<br><em>Tudo incluso.</em></h1>
+    <p class="lead" style="max-width:520px;margin:0 auto;">Nada de plano básico sem funcionalidade. O Guido entrega tudo o que o MEI precisa — em um único plano honesto.</p>
+
+    <div class="hero-price-block" id="assinar">
+      <div class="hero-badge">Plano único · sem fidelidade</div>
+      <div class="price-main">R$ 19</div>
+      <div class="price-per">por mês · cobrado mensalmente</div>
+      <div style="height:1.5px;background:var(--border);width:100%;margin:1.5rem 0;"></div>
+      <a href="#" class="btn-primary" style="width:100%;max-width:320px;">Assinar agora</a>
+      <p style="font-size:12px;color:var(--text3);margin-top:10px;font-style:italic;">Pagamento via cartão ou Pix</p>
+    </div>
+
+    <div class="hero-guarantee">
+      <div class="guarantee-item">Cancele quando quiser</div>
+      <div class="guarantee-item">Sem fidelidade</div>
+      <div class="guarantee-item">Sem taxas ocultas</div>
+      <div class="guarantee-item">Acesso imediato</div>
+    </div>
+
+    <p style="font-size:14px;color:var(--text3);margin-top:2rem;font-style:italic;">"R$ 19 por mês é menos do que um lançamento errado no fim do mês custa."</p>
+  </div>
+</section>
+
+<!-- TUDO INCLUSO -->
+<section class="included">
+  <div class="container">
+    <div class="section-label center">O que está incluso</div>
+    <h2 style="text-align:center;">Tudo.<br><em>Sem exceção.</em></h2>
+    <p class="lead" style="text-align:center;max-width:480px;margin:0 auto;">Nenhuma funcionalidade bloqueada. Nenhum limite artificial. Você paga R$ 19 e acessa tudo o que o Guido oferece.</p>
+
+    <div class="included-grid">
+      <div class="included-item">
+        <div class="included-ico">🎙️</div>
+        <div>
+          <div class="included-title">Lançamento por voz e texto</div>
+          <div class="included-desc">No WhatsApp ou no painel. Em português natural, sem formato rígido. O Guido entende o jeito que você fala.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">🏠🏢</div>
+        <div>
+          <div class="included-title">Separação casa vs negócio</div>
+          <div class="included-desc">Cada centavo classificado — dinheiro da casa ou dinheiro do negócio. Lançamentos ilimitados.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">💬</div>
+        <div>
+          <div class="included-title">Conselheiro financeiro no WhatsApp</div>
+          <div class="included-desc">Pergunte o que quiser. O Guido analisa seu histórico real e responde com orientações personalizadas.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">📄</div>
+        <div>
+          <div class="included-title">Importação de extrato CSV</div>
+          <div class="included-desc">Qualquer banco. Detecção automática de formato. Revisão obrigatória antes de entrar no histórico.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">💳</div>
+        <div>
+          <div class="included-title">Cartão de crédito inteligente</div>
+          <div class="included-desc">Gasto no dia da compra. Fatura como transferência interna. Sem duplicação nos relatórios.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">📊</div>
+        <div>
+          <div class="included-title">Dashboard em tempo real</div>
+          <div class="included-desc">Donut Negócio vs Casa, barras por categoria e fila de revisão. Atualiza a cada lançamento confirmado.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">🎯</div>
+        <div>
+          <div class="included-title">Categorias e teto de gastos</div>
+          <div class="included-desc">Categorias padrão para MEI + personalizadas. Teto por voz ou painel. Alerta em 80% do limite.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">💰</div>
+        <div>
+          <div class="included-title">Pró-labore automático</div>
+          <div class="included-desc">Defina seu salário mensal. O Guido monitora e avisa quando o limite do mês estiver acabando.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">🚨</div>
+        <div>
+          <div class="included-title">Radar de limite MEI</div>
+          <div class="included-desc">Acompanha o faturamento acumulado no ano e avisa antes de você estourar o limite de R$ 81 mil.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">📥</div>
+        <div>
+          <div class="included-title">Exportação para contador</div>
+          <div class="included-desc">Baixe o extrato completo em CSV a qualquer momento, pronto para enviar ao seu contador.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">🔐</div>
+        <div>
+          <div class="included-title">Segurança e privacidade</div>
+          <div class="included-desc">HTTPS obrigatório, dados criptografados, multi-usuário com isolamento total. Seus dados são seus.</div>
+        </div>
+      </div>
+      <div class="included-item">
+        <div class="included-ico">📱</div>
+        <div>
+          <div class="included-title">Responsivo — funciona em qualquer tela</div>
+          <div class="included-desc">Celular, tablet, desktop. Sem app para instalar — acesse pelo navegador de onde estiver.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARATIVO -->
+<section class="compare">
+  <div class="container">
+    <div class="section-label center">Guido vs alternativas</div>
+    <h2 style="text-align:center;">Por que o Guido<br><em>é diferente.</em></h2>
+    <p class="lead" style="text-align:center;max-width:480px;margin:0 auto;">Nenhum app de banco, planilha ou ERP resolve o problema do MEI do jeito que o Guido resolve.</p>
+
+    <div style="overflow-x:auto;margin-top:2.5rem;">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="width:35%;">Funcionalidade</th>
+            <th class="highlight" style="width:16%;text-align:center;">✦ Guido</th>
+            <th style="width:16%;text-align:center;">App de banco</th>
+            <th style="width:16%;text-align:center;">Planilha</th>
+            <th style="width:17%;text-align:center;">ERP / Conta Azul</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="feat-name">Separa PF e PJ com 1 conta só</td>
+            <td class="highlight" style="text-align:center;"><span class="check-yes">✓</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Lançamento por voz no WhatsApp</td>
+            <td class="highlight" style="text-align:center;"><span class="check-yes">✓</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Conselheiro financeiro por chat</td>
+            <td class="highlight" style="text-align:center;"><span class="check-yes">✓</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Cartão sem duplicação na fatura</td>
+            <td class="highlight" style="text-align:center;"><span class="check-yes">✓</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-yes" style="color:var(--text2);font-size:14px;">parcial</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Importação de extrato CSV</td>
+            <td class="highlight" style="text-align:center;"><span class="check-yes">✓</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-yes" style="color:var(--text2);font-size:14px;">manual</span></td>
+            <td style="text-align:center;"><span class="check-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Radar de limite MEI</td>
+            <td class="highlight" style="text-align:center;"><span class="check-yes">✓</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-yes" style="color:var(--text2);font-size:14px;">parcial</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Funciona sem abrir conta nova</td>
+            <td class="highlight" style="text-align:center;"><span class="check-yes">✓</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-yes">✓</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Teto de gastos por categoria</td>
+            <td class="highlight" style="text-align:center;"><span class="check-yes">✓</span></td>
+            <td style="text-align:center;"><span class="check-no">—</span></td>
+            <td style="text-align:center;"><span class="check-yes" style="color:var(--text2);font-size:14px;">manual</span></td>
+            <td style="text-align:center;"><span class="check-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Preço mensal</td>
+            <td class="highlight" style="text-align:center;font-weight:500;color:var(--green);">R$ 19</td>
+            <td style="text-align:center;">grátis</td>
+            <td style="text-align:center;">grátis</td>
+            <td style="text-align:center;">R$ 80–300</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PROVA SOCIAL -->
+<section class="proof">
+  <div class="container">
+    <div class="section-label center">Quem usa</div>
+    <h2 style="text-align:center;">MEIs que pararam de<br><em>adivinhar o saldo.</em></h2>
+    <div class="proof-grid">
+      <div class="proof-card">
+        <p class="proof-text">"Pela primeira vez eu sei exatamente o que é meu e o que é da minha empresa. R$ 19 por mês é nada perto do que eu perdia sem controle."</p>
+        <div class="proof-author">
+          <div class="proof-av">M</div>
+          <div>
+            <div class="proof-name">Marina B., 34</div>
+            <div class="proof-role">Manicure · Belo Horizonte</div>
+          </div>
+        </div>
+      </div>
+      <div class="proof-card">
+        <p class="proof-text">"Importei o extrato do banco e ele classificou tudo sozinho. Levei 10 minutos pra revisar o mês inteiro. Antes eu ficava horas numa planilha."</p>
+        <div class="proof-author">
+          <div class="proof-av">R</div>
+          <div>
+            <div class="proof-name">Roberto C., 42</div>
+            <div class="proof-role">Pedreiro autônomo · São Paulo</div>
+          </div>
+        </div>
+      </div>
+      <div class="proof-card">
+        <p class="proof-text">"O Guido me avisou que meu faturamento estava em 78% do limite antes de eu perceber. Salvou meu CNPJ naquele mês."</p>
+        <div class="proof-author">
+          <div class="proof-av">J</div>
+          <div>
+            <div class="proof-name">Juliana M., 29</div>
+            <div class="proof-role">Confeiteira · Recife</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="container">
+    <div class="section-label center">Dúvidas sobre o plano</div>
+    <h2 style="text-align:center;">Perguntas<br><em>frequentes.</em></h2>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <div class="faq-q">Tem período de teste grátis?</div>
+        <div class="faq-a">Por enquanto não oferecemos trial gratuito. Mas o plano é sem fidelidade — se não gostar, cancele no primeiro mês sem multa e sem burocracia.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Como é feito o pagamento?</div>
+        <div class="faq-a">Cartão de crédito ou Pix. Cobrado mensalmente no mesmo dia da assinatura. Você recebe aviso 3 dias antes de cada renovação.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Posso cancelar quando quiser?</div>
+        <div class="faq-a">Sim, sem multa e sem burocracia. Cancele pelo painel ou pedindo diretamente ao Guido no WhatsApp. O acesso continua até o fim do período já pago.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Vão lançar outros planos?</div>
+        <div class="faq-a">Sim. O plano atual cobre todas as necessidades do MEI. Planos com funcionalidades adicionais estão no roadmap — quem assinar agora mantém o preço atual.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Preciso de cartão de crédito para assinar?</div>
+        <div class="faq-a">Não. Você pode pagar via Pix também. Aceitamos os principais cartões de crédito e débito.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">E se eu não gostar?</div>
+        <div class="faq-a">Cancele. Sem pergunta, sem retenção, sem processo longo. Basta pedir e pronto. O Guido só quer estar aqui se estiver ajudando de verdade.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-final">
+  <div class="container">
+    <div class="section-label center">Pronto?</div>
+    <h2>Você não abriu um CNPJ<br>para virar contador.<br><em>É só chamar o Guido.</em></h2>
+    <p class="lead">Gestão financeira é para corporações. Para você, é só chamar o Guido.</p>
+    <div class="cta-price-inline">R$ 19 <span style="font-size:0.9rem;color:var(--text2);font-family:var(--sans);">/mês</span></div>
+    <br>
+    <a href="#assinar" class="btn-primary" style="font-size:17px;padding:18px 48px;">Assinar agora</a>
+    <p style="font-size:13px;color:var(--text3);margin-top:14px;font-style:italic;">Cancele quando quiser. Sem fidelidade. Acesso imediato.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+          <svg width="28" height="19" viewBox="0 0 155 52" xmlns="http://www.w3.org/2000/svg">
+            <line x1="18" y1="17" x2="2" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+            <rect x="18" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+            <line x1="58" y1="22" x2="97" y2="22" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+            <rect x="97" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+            <line x1="137" y1="17" x2="153" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+          <span style="font-family:var(--serif);font-size:18px;color:var(--text);"><span style="color:var(--green)">G</span>uido</span>
+        </a>
+        <p>Gestão financeira é para corporações. Para você, é só chamar o Guido.</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Produto</div>
+        <div class="footer-col">
+          <a href="/como-funciona">Como funciona</a>
+          <a href="/funcionalidades">Funcionalidades</a>
+          <a href="/planos">Planos — R$ 19/mês</a>
+          <a href="/faq">FAQ</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Conteúdo</div>
+        <div class="footer-col">
+          <a href="/blog">Blog</a>
+          <a href="/blog/guia-do-mei">Guia do MEI</a>
+          <a href="/blog/limite-mei-2026">Limite MEI 2026</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Legal</div>
+        <div class="footer-col">
+          <a href="/termos">Termos de uso</a>
+          <a href="/privacidade">Privacidade</a>
+          <a href="/contato">Contato</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 guido · chamaoguido.com</span>
+      <span>Feito com carinho para os 13 milhões de MEIs do Brasil.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

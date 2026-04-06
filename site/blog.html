@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog Guido — Tudo sobre dinheiro de MEI sem linguagem de contador</title>
+<meta name="description" content="Guias práticos sobre finanças para MEI: separar contas, limite MEI 2026, pró-labore, cartão de crédito, extrato bancário e mais. Sem jargão de contador.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green:    #1D9E75;
+  --green-dk: #085041;
+  --green-lt: #E1F5EE;
+  --amber:    #F5A623;
+  --amber-lt: #FEF3DC;
+  --red-lt:   #FCEBEB;
+  --red:      #E24B4A;
+  --blue-lt:  #E6F1FB;
+  --blue:     #185FA5;
+  --purple-lt:#F0EBFB;
+  --purple:   #6B3FA0;
+  --night:    #0D1117;
+  --surface:  #111827;
+  --surface2: #1E293B;
+  --border:   #1E293B;
+  --text:     #F1F5F9;
+  --text2:    #94A3B8;
+  --text3:    #475569;
+  --serif:    'Lora', Georgia, serif;
+  --sans:     'DM Sans', system-ui, sans-serif;
+  --r-md:     10px;
+  --r-lg:     16px;
+  --r-xl:     24px;
+}
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--night); color: var(--text); line-height: 1.6; overflow-x: hidden; }
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,17,23,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem; display: flex; align-items: center; height: 64px; gap: 2rem;
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.nav-logo-text { font-family: var(--serif); font-size: 22px; font-weight: 400; color: var(--text); letter-spacing: -0.5px; }
+.nav-logo-text span { color: var(--green); }
+.nav-links { display: flex; gap: 1.75rem; list-style: none; margin-left: auto; }
+.nav-links a { font-size: 14px; color: var(--text2); text-decoration: none; transition: color 0.15s; }
+.nav-links a:hover { color: var(--text); }
+.nav-links a.active { color: var(--text); font-weight: 500; }
+.nav-cta { background: var(--green) !important; color: #fff !important; padding: 8px 18px; border-radius: 8px; font-weight: 500 !important; white-space: nowrap; transition: background 0.15s !important; }
+.nav-cta:hover { background: var(--green-dk) !important; }
+
+/* SHARED */
+.container { max-width: 1100px; margin: 0 auto; }
+.section-label {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--green); margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::before { content: ''; display: block; width: 20px; height: 1px; background: var(--green); }
+.section-label.center { justify-content: center; }
+.section-label.center::before { display: none; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 400; color: var(--text); }
+h1 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.2; margin-bottom: 1.25rem; }
+h2 { font-size: clamp(1.5rem, 2.5vw, 2rem); line-height: 1.25; margin-bottom: 0.75rem; }
+h1 em, h2 em { font-style: italic; color: var(--green); }
+.btn-primary {
+  display: inline-block; background: var(--green); color: #fff;
+  padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 500;
+  text-decoration: none; transition: background 0.15s, transform 0.1s;
+}
+.btn-primary:hover { background: var(--green-dk); transform: translateY(-1px); }
+
+/* HERO */
+.hero {
+  background: var(--surface);
+  padding: 5rem 2rem 4rem;
+}
+.hero-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 4rem; align-items: center;
+}
+.hero-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  margin-top: 2rem;
+}
+.hero-stat {
+  background: var(--night); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 1.25rem;
+}
+.hero-stat-num { font-family: var(--serif); font-size: 2rem; color: var(--green); line-height: 1; margin-bottom: 0.35rem; }
+.hero-stat-lbl { font-size: 12px; color: var(--text2); line-height: 1.4; }
+.hero-topics {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 1.5rem;
+}
+.topic-pill {
+  font-size: 12px; font-weight: 500; padding: 5px 12px;
+  border-radius: 20px; border: 1px solid var(--border);
+  color: var(--text2); text-decoration: none;
+  transition: all 0.15s; cursor: pointer;
+}
+.topic-pill:hover { border-color: var(--green); color: var(--green); background: rgba(29,158,117,0.05); }
+.topic-pill.active { background: var(--green); color: #fff; border-color: var(--green); }
+
+/* FEATURED */
+.featured { padding: 4rem 2rem; background: var(--night); }
+.featured-grid {
+  display: grid; grid-template-columns: 1.6fr 1fr;
+  gap: 1.5rem; margin-top: 2rem;
+}
+.card-featured {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-xl); overflow: hidden;
+  text-decoration: none; display: flex; flex-direction: column;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.card-featured:hover { border-color: var(--green); transform: translateY(-2px); }
+.card-featured-thumb {
+  height: 200px; position: relative;
+  display: flex; align-items: flex-end;
+  padding: 1.25rem;
+}
+.card-featured-body { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
+.card-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 3px 10px;
+  border-radius: 20px; width: fit-content; margin-bottom: 0.75rem;
+}
+.card-title { font-family: var(--serif); font-size: 1.15rem; font-weight: 400; line-height: 1.4; color: var(--text); margin-bottom: 0.5rem; }
+.card-title-sm { font-family: var(--serif); font-size: 1rem; font-weight: 400; line-height: 1.4; color: var(--text); margin-bottom: 0.5rem; }
+.card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; flex: 1; }
+.card-meta { display: flex; align-items: center; gap: 8px; margin-top: 1rem; font-size: 11px; color: var(--text3); }
+.card-meta-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text3); }
+.read-time { display: flex; align-items: center; gap: 4px; }
+
+/* SIDEBAR FEATURED */
+.featured-side { display: flex; flex-direction: column; gap: 1.5rem; }
+.card-side {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 1.25rem;
+  text-decoration: none; display: flex; flex-direction: column;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.card-side:hover { border-color: var(--green); transform: translateX(3px); }
+
+/* GRID DE ARTIGOS */
+.articles { padding: 4rem 2rem; background: var(--surface); }
+.articles-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+}
+.articles-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+.card-article {
+  background: var(--night); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+  text-decoration: none; display: flex; flex-direction: column;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.card-article:hover { border-color: var(--green); transform: translateY(-2px); }
+.card-article-thumb {
+  height: 120px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem;
+}
+.card-article-body { padding: 1.25rem; flex: 1; display: flex; flex-direction: column; }
+
+/* GUIA COMPLETO */
+.guia { padding: 4rem 2rem; background: var(--night); }
+.guia-inner {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 3rem;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;
+}
+.guia-chapters { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; }
+.chapter {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--night); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.85rem 1rem;
+  text-decoration: none; transition: border-color 0.15s;
+}
+.chapter:hover { border-color: var(--green); }
+.chapter-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(29,158,117,0.1); border: 1px solid rgba(29,158,117,0.3);
+  color: var(--green); font-size: 12px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.chapter-title { font-size: 13px; color: var(--text); }
+.chapter-time { font-size: 11px; color: var(--text3); margin-left: auto; }
+
+/* NEWSLETTER */
+.newsletter { padding: 5rem 2rem; background: var(--surface); }
+.newsletter-inner {
+  max-width: 600px; margin: 0 auto; text-align: center;
+}
+.newsletter-form {
+  display: flex; gap: 10px; margin-top: 2rem; flex-wrap: wrap;
+}
+.newsletter-input {
+  flex: 1; min-width: 240px;
+  background: var(--night); border: 1px solid var(--border);
+  border-radius: 10px; padding: 13px 16px;
+  font-size: 15px; color: var(--text); font-family: var(--sans);
+  transition: border-color 0.15s; outline: none;
+}
+.newsletter-input::placeholder { color: var(--text3); }
+.newsletter-input:focus { border-color: var(--green); }
+.newsletter-micro { font-size: 12px; color: var(--text3); margin-top: 10px; font-style: italic; }
+
+/* CTA */
+.cta-section { text-align: center; border-top: 1px solid var(--border); padding: 5rem 2rem; background: var(--night); }
+.cta-section h2 { max-width: 540px; margin: 0 auto 1rem; }
+.cta-section p { font-size: 16px; color: var(--text2); max-width: 440px; margin: 0 auto 2rem; }
+
+/* FOOTER */
+footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem 2rem; }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 2rem; margin-bottom: 2.5rem; }
+.footer-brand p { font-size: 13px; color: var(--text3); margin-top: 0.75rem; max-width: 220px; line-height: 1.6; }
+.footer-col-title { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 1rem; }
+.footer-col a { display: block; font-size: 13px; color: var(--text2); text-decoration: none; line-height: 2; transition: color 0.15s; }
+.footer-col a:hover { color: var(--text); }
+.footer-bottom { border-top: 1px solid var(--border); padding-top: 1.5rem; font-size: 12px; color: var(--text3); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+
+@media (max-width: 768px) {
+  nav { padding: 0 1rem; }
+  .nav-links { display: none; }
+  .hero-inner, .featured-grid, .guia-inner { grid-template-columns: 1fr; }
+  .articles-grid { grid-template-columns: 1fr 1fr; }
+  .hero-stats { grid-template-columns: 1fr 1fr; }
+  .footer-top { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .articles-grid { grid-template-columns: 1fr; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-inner > * { animation: fadeUp 0.6s ease both; }
+.hero-inner > *:nth-child(1) { animation-delay: 0.05s; }
+.hero-inner > *:nth-child(2) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <svg width="32" height="22" viewBox="0 0 155 52" xmlns="http://www.w3.org/2000/svg">
+      <line x1="18" y1="17" x2="2" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+      <rect x="18" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+      <line x1="58" y1="22" x2="97" y2="22" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+      <rect x="97" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+      <line x1="137" y1="17" x2="153" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+    <span class="nav-logo-text"><span>G</span>uido</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/como-funciona">Como funciona</a></li>
+    <li><a href="/funcionalidades">Funcionalidades</a></li>
+    <li><a href="/planos">Planos</a></li>
+    <li><a href="/blog" class="active">Blog</a></li>
+    <li><a href="/faq">FAQ</a></li>
+    <li><a href="/planos" class="nav-cta">Assinar por R$&nbsp;19/mês</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="section-label">Blog</div>
+      <h1>Tudo sobre dinheiro de MEI.<br><em>Sem linguagem<br>de contador.</em></h1>
+      <p style="font-size:17px;color:var(--text2);line-height:1.75;max-width:440px;">Guias práticos, exemplos reais e orientações diretas para o microempreendedor que quer entender o próprio dinheiro.</p>
+      <div class="hero-topics">
+        <a href="#" class="topic-pill active">Todos</a>
+        <a href="#" class="topic-pill">Finanças básicas</a>
+        <a href="#" class="topic-pill">Limite MEI</a>
+        <a href="#" class="topic-pill">Pró-labore</a>
+        <a href="#" class="topic-pill">Cartão de crédito</a>
+        <a href="#" class="topic-pill">Extrato bancário</a>
+        <a href="#" class="topic-pill">Declaração</a>
+        <a href="#" class="topic-pill">Crescimento</a>
+      </div>
+    </div>
+    <div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num">13,1M</div>
+          <div class="hero-stat-lbl">MEIs ativos no Brasil em 2026</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">61%</div>
+          <div class="hero-stat-lbl">misturam finanças PF e PJ</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">R$130k</div>
+          <div class="hero-stat-lbl">novo limite anual do MEI aprovado</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">77%</div>
+          <div class="hero-stat-lbl">nunca fizeram curso de gestão financeira</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARTIGOS EM DESTAQUE -->
+<section class="featured">
+  <div class="container">
+    <div class="section-label">Em destaque</div>
+    <h2>Os mais lidos<br><em>esse mês.</em></h2>
+    <div class="featured-grid">
+
+      <!-- Card principal -->
+      <a href="#" class="card-featured">
+        <div class="card-featured-thumb" style="background: linear-gradient(135deg, #0F2A1F 0%, #1D9E75 100%);">
+          <div style="font-size:3.5rem;">🏠🏢</div>
+        </div>
+        <div class="card-featured-body">
+          <div class="card-tag" style="background:var(--green-lt);color:var(--green-dk);">
+            Finanças básicas
+          </div>
+          <div class="card-title">Como separar o dinheiro da casa do dinheiro do negócio sem abrir outra conta</div>
+          <p class="card-desc">O guia mais direto para o MEI organizar as finanças com a conta que já tem. Entenda a lógica, veja exemplos reais e aprenda a usar o Guido para fazer isso automaticamente.</p>
+          <div class="card-meta">
+            <span class="read-time">⏱ 8 min de leitura</span>
+            <span class="card-meta-dot"></span>
+            <span>Guia completo</span>
+            <span class="card-meta-dot"></span>
+            <span style="color:var(--green);">Mais popular</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Coluna lateral -->
+      <div class="featured-side">
+        <a href="#" class="card-side">
+          <div class="card-tag" style="background:var(--amber-lt);color:#92400E;">
+            Limite MEI
+          </div>
+          <div class="card-title-sm">Limite do MEI em 2026: o que mudou com os R$ 130 mil</div>
+          <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:0.4rem;">Com o novo limite aprovado no Congresso, o que muda na prática? Como se preparar?</p>
+          <div class="card-meta" style="margin-top:0.85rem;">
+            <span class="read-time">⏱ 6 min</span>
+          </div>
+        </a>
+
+        <a href="#" class="card-side">
+          <div class="card-tag" style="background:var(--blue-lt);color:var(--blue);">
+            Pró-labore
+          </div>
+          <div class="card-title-sm">O que é pró-labore e por que o MEI precisa de um salário fixo todo mês</div>
+          <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:0.4rem;">Sem salário definido, o dinheiro some. Entenda como definir o seu e monitorar pelo Guido.</p>
+          <div class="card-meta" style="margin-top:0.85rem;">
+            <span class="read-time">⏱ 5 min</span>
+          </div>
+        </a>
+
+        <a href="#" class="card-side">
+          <div class="card-tag" style="background:var(--red-lt);color:var(--red);">
+            Cartão de crédito
+          </div>
+          <div class="card-title-sm">Por que a fatura do cartão destrói o controle financeiro do MEI</div>
+          <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:0.4rem;">O erro mais comum com cartão — e como o Guido resolve sem duplicar gastos.</p>
+          <div class="card-meta" style="margin-top:0.85rem;">
+            <span class="read-time">⏱ 5 min</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TODOS OS ARTIGOS -->
+<section class="articles">
+  <div class="container">
+    <div class="articles-header">
+      <div>
+        <div class="section-label">Todos os artigos</div>
+        <h2>Continue<br><em>aprendendo.</em></h2>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="#" class="topic-pill active">Todos</a>
+        <a href="#" class="topic-pill">Mais recentes</a>
+        <a href="#" class="topic-pill">Mais lidos</a>
+      </div>
+    </div>
+
+    <div class="articles-grid">
+
+      <a href="#" class="card-article">
+        <div class="card-article-thumb" style="background:linear-gradient(135deg,#0F2A1F,#1D9E75);">🏠🏢</div>
+        <div class="card-article-body">
+          <div class="card-tag" style="background:var(--green-lt);color:var(--green-dk);">Finanças básicas</div>
+          <div class="card-title-sm">Como separar o dinheiro da casa do negócio sem abrir outra conta</div>
+          <p class="card-desc" style="margin-top:0.4rem;">O guia mais direto para o MEI organizar as finanças com a conta que já tem.</p>
+          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 8 min</span></div>
+        </div>
+      </a>
+
+      <a href="#" class="card-article">
+        <div class="card-article-thumb" style="background:linear-gradient(135deg,#1A0F00,#F5A623);">📊</div>
+        <div class="card-article-body">
+          <div class="card-tag" style="background:var(--amber-lt);color:#92400E;">Limite MEI</div>
+          <div class="card-title-sm">Limite do MEI em 2026: R$ 130 mil e como não estourar o seu</div>
+          <p class="card-desc" style="margin-top:0.4rem;">Com o novo limite aprovado, o que muda e como se preparar antes de virar obrigação.</p>
+          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 6 min</span></div>
+        </div>
+      </a>
+
+      <a href="#" class="card-article">
+        <div class="card-article-thumb" style="background:linear-gradient(135deg,#001430,#185FA5);">💰</div>
+        <div class="card-article-body">
+          <div class="card-tag" style="background:var(--blue-lt);color:var(--blue);">Pró-labore</div>
+          <div class="card-title-sm">O que é pró-labore e por que o MEI precisa de um salário fixo</div>
+          <p class="card-desc" style="margin-top:0.4rem;">Sem pró-labore definido, o dinheiro some sem explicação. Veja como calcular o seu.</p>
+          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 5 min</span></div>
+        </div>
+      </a>
+
+      <a href="#" class="card-article">
+        <div class="card-article-thumb" style="background:linear-gradient(135deg,#1A0505,#E24B4A);">💳</div>
+        <div class="card-article-body">
+          <div class="card-tag" style="background:var(--red-lt);color:var(--red);">Cartão de crédito</div>
+          <div class="card-title-sm">Por que a fatura do cartão destrói o controle financeiro do MEI</div>
+          <p class="card-desc" style="margin-top:0.4rem;">O erro mais comum com cartão — e como lançar certo sem duplicar nos relatórios.</p>
+          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 5 min</span></div>
+        </div>
+      </a>
+
+      <a href="#" class="card-article">
+        <div class="card-article-thumb" style="background:linear-gradient(135deg,#0D1117,#475569);">📄</div>
+        <div class="card-article-body">
+          <div class="card-tag" style="background:var(--surface2);color:var(--text2);">Extrato bancário</div>
+          <div class="card-title-sm">Como importar o extrato do banco e organizar o mês em 10 minutos</div>
+          <p class="card-desc" style="margin-top:0.4rem;">Passo a passo para baixar o CSV de qualquer banco e processar no Guido.</p>
+          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 4 min</span></div>
+        </div>
+      </a>
+
+      <a href="#" class="card-article">
+        <div class="card-article-thumb" style="background:linear-gradient(135deg,#150F2A,#6B3FA0);">🎯</div>
+        <div class="card-article-body">
+          <div class="card-tag" style="background:var(--purple-lt);color:var(--purple);">Teto de gastos</div>
+          <div class="card-title-sm">Como definir um teto de gastos por categoria e parar de estourar o orçamento</div>
+          <p class="card-desc" style="margin-top:0.4rem;">Defina limites por voz no WhatsApp e deixe o Guido monitorar por você.</p>
+          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 4 min</span></div>
+        </div>
+      </a>
+
+      <a href="#" class="card-article">
+        <div class="card-article-thumb" style="background:linear-gradient(135deg,#0F1A0F,#2E7D32);">📋</div>
+        <div class="card-article-body">
+          <div class="card-tag" style="background:var(--green-lt);color:var(--green-dk);">Declaração</div>
+          <div class="card-title-sm">Declaração Anual do MEI 2026: passo a passo sem complicação</div>
+          <p class="card-desc" style="margin-top:0.4rem;">Como fazer a DASN-SIMEI do zero, sem contador, sem errar o prazo.</p>
+          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 7 min</span></div>
+        </div>
+      </a>
+
+      <a href="#" class="card-article">
+        <div class="card-article-thumb" style="background:linear-gradient(135deg,#1A1400,#B8860B);">📈</div>
+        <div class="card-article-body">
+          <div class="card-tag" style="background:var(--amber-lt);color:#92400E;">Crescimento</div>
+          <div class="card-title-sm">Quando deixar de ser MEI? Os sinais de que seu negócio cresceu demais</div>
+          <p class="card-desc" style="margin-top:0.4rem;">Faturamento, funcionários, atividades — quando e como migrar para ME.</p>
+          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 6 min</span></div>
+        </div>
+      </a>
+
+      <a href="#" class="card-article">
+        <div class="card-article-thumb" style="background:linear-gradient(135deg,#001A30,#0D47A1);">🧾</div>
+        <div class="card-article-body">
+          <div class="card-tag" style="background:var(--blue-lt);color:var(--blue);">DAS MEI</div>
+          <div class="card-title-sm">DAS MEI: o que é, quanto custa e como nunca mais esquecer de pagar</div>
+          <p class="card-desc" style="margin-top:0.4rem;">Guia completo sobre o DAS, quando pagar, o que acontece se atrasar.</p>
+          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 5 min</span></div>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- GUIA COMPLETO -->
+<section class="guia">
+  <div class="container">
+    <div class="guia-inner">
+      <div>
+        <div class="section-label">Guia completo</div>
+        <h2>Guia do MEI:<br><em>do zero ao<br>controle total.</em></h2>
+        <p style="font-size:15px;color:var(--text2);line-height:1.75;margin-top:0.75rem;">Tudo o que o microempreendedor precisa saber sobre dinheiro — em um guia organizado, do básico ao avançado. Leia na ordem ou pule direto para o que precisa.</p>
+        <div style="margin-top:1.5rem;">
+          <a href="#" class="btn-primary">Começar a ler o guia</a>
+        </div>
+      </div>
+      <div>
+        <div class="guia-chapters">
+          <a href="#" class="chapter">
+            <div class="chapter-num">1</div>
+            <div class="chapter-title">O problema da conta única — entendendo o ciclo</div>
+            <div class="chapter-time">8 min</div>
+          </a>
+          <a href="#" class="chapter">
+            <div class="chapter-num">2</div>
+            <div class="chapter-title">Separando casa e negócio na prática</div>
+            <div class="chapter-time">6 min</div>
+          </a>
+          <a href="#" class="chapter">
+            <div class="chapter-num">3</div>
+            <div class="chapter-title">Pró-labore: seu salário fixo como MEI</div>
+            <div class="chapter-time">5 min</div>
+          </a>
+          <a href="#" class="chapter">
+            <div class="chapter-num">4</div>
+            <div class="chapter-title">Cartão de crédito sem destruir o controle</div>
+            <div class="chapter-time">5 min</div>
+          </a>
+          <a href="#" class="chapter">
+            <div class="chapter-num">5</div>
+            <div class="chapter-title">Limite do MEI: como monitorar e quando frear</div>
+            <div class="chapter-time">6 min</div>
+          </a>
+          <a href="#" class="chapter">
+            <div class="chapter-num">6</div>
+            <div class="chapter-title">Declaração anual e DAS: o que não pode errar</div>
+            <div class="chapter-time">7 min</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="newsletter">
+  <div class="newsletter-inner">
+    <div class="section-label center">Newsletter</div>
+    <h2 style="text-align:center;">Todo mês, um guia novo.<br><em>Direto no seu WhatsApp.</em></h2>
+    <p style="font-size:15px;color:var(--text2);line-height:1.75;margin-top:0.75rem;">Receba resumos práticos sobre finanças para MEI — sem spam, sem enrolação. Só o que importa para o seu negócio.</p>
+    <div class="newsletter-form">
+      <input type="tel" class="newsletter-input" placeholder="Seu WhatsApp (com DDD)">
+      <a href="#" class="btn-primary" style="white-space:nowrap;">Quero receber</a>
+    </div>
+    <p class="newsletter-micro">Sem spam. Cancele quando quiser. Já são +1.200 MEIs recebendo.</p>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-section">
+  <div class="container">
+    <div class="section-label center">Coloca em prática</div>
+    <h2>Leu o suficiente.<br><em>É hora de chamar o Guido.</em></h2>
+    <p>R$ 19/mês. Um plano. Tudo incluso. Cancele quando quiser.</p>
+    <a href="/planos" class="btn-primary" style="font-size:16px;padding:16px 36px;">Assinar por R$ 19/mês</a>
+    <p style="font-size:13px;color:var(--text3);margin-top:12px;font-style:italic;">Sem fidelidade. Acesso imediato.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+          <svg width="28" height="19" viewBox="0 0 155 52" xmlns="http://www.w3.org/2000/svg">
+            <line x1="18" y1="17" x2="2" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+            <rect x="18" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+            <line x1="58" y1="22" x2="97" y2="22" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+            <rect x="97" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+            <line x1="137" y1="17" x2="153" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+          <span style="font-family:var(--serif);font-size:18px;color:var(--text);"><span style="color:var(--green)">G</span>uido</span>
+        </a>
+        <p>Gestão financeira é para corporações. Para você, é só chamar o Guido.</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Produto</div>
+        <div class="footer-col">
+          <a href="/como-funciona">Como funciona</a>
+          <a href="/funcionalidades">Funcionalidades</a>
+          <a href="/planos">Planos — R$ 19/mês</a>
+          <a href="/faq">FAQ</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Conteúdo</div>
+        <div class="footer-col">
+          <a href="/blog">Blog</a>
+          <a href="/blog/guia-do-mei">Guia do MEI</a>
+          <a href="/blog/limite-mei-2026">Limite MEI 2026</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Legal</div>
+        <div class="footer-col">
+          <a href="/termos">Termos de uso</a>
+          <a href="/privacidade">Privacidade</a>
+          <a href="/contato">Contato</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 guido · chamaoguido.com</span>
+      <span>Feito com carinho para os 13 milhões de MEIs do Brasil.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
