@@ -928,7 +928,7 @@ with aba_dashboard:
                         # Progress bar (Streamlit clampeia em 0-1, então pra >100% mando 1.0)
                         col_barra_m.progress(min(pct, 1.0))
                         if pct > 1.0:
-                            col_barra_m.caption(f"⚠️ Estourou {pct:.0%} do teto!")
+                            col_barra_m.caption(f"⚠️ Cuidado, você já atingiu {pct:.0%} do seu teto!")
     except Exception:
         pass  # sem limites ou sem conexão — não mostra a seção
 
