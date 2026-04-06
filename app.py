@@ -705,18 +705,27 @@ with aba_dashboard:
             if arquivo and st.button("Processar Arquivo 🚀", use_container_width=True):
                 try:
                     arquivo.seek(0)
-                    df_extrato = pd.read_csv(arquivo, sep=None, engine='python', header=None)
+                    df_extrato = pd.read_csv(arquivo, sep=None, engine='python', header=None, dtype=str)
+
+                    # Helper: converte qualquer valor pra string segura (resolve
+                    # floats, NaN, None que estouram o operador 'in')
+                    def _safe_str(v):
+                        if v is None or (isinstance(v, float) and pd.isna(v)):
+                            return ""
+                        return str(v).lower().strip()
+
+                    # Detecta a linha de cabeçalho
                     header_idx = 0
                     for i in range(min(15, len(df_extrato))):
-                        linha_texto = df_extrato.iloc[i].astype(str).str.lower().tolist()
+                        linha_texto = [_safe_str(v) for v in df_extrato.iloc[i]]
                         if any('valor' in c for c in linha_texto) and any('descri' in c or 'hist' in c for c in linha_texto):
                             header_idx = i
                             break
-                    df_extrato.columns = df_extrato.iloc[header_idx].astype(str).str.lower().str.strip()
+
+                    # Usa a linha detectada como cabeçalho
+                    df_extrato.columns = [_safe_str(v) for v in df_extrato.iloc[header_idx]]
                     df_extrato = df_extrato.iloc[header_idx+1:].reset_index(drop=True)
-                    # Garante que nenhum nome de coluna é float/NaN (CSVs como Asaas
-                    # têm colunas extras com cabeçalho vazio → viram float → 'in' estoura)
-                    df_extrato.columns = [str(c) if not isinstance(c, str) else c for c in df_extrato.columns]
+
                     col_desc = next((c for c in df_extrato.columns if 'descri' in c or 'historico' in c), None)
                     col_val  = next((c for c in df_extrato.columns if 'valor' in c), None)
                     col_data = next((c for c in df_extrato.columns if 'data' in c or 'vencimento' in c or 'date' in c), None)
