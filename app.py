@@ -712,8 +712,11 @@ with aba_dashboard:
                         if any('valor' in c for c in linha_texto) and any('descri' in c or 'hist' in c for c in linha_texto):
                             header_idx = i
                             break
-                    df_extrato.columns = df_extrato.iloc[header_idx].astype(str).str.lower()
+                    df_extrato.columns = df_extrato.iloc[header_idx].astype(str).str.lower().str.strip()
                     df_extrato = df_extrato.iloc[header_idx+1:].reset_index(drop=True)
+                    # Garante que nenhum nome de coluna é float/NaN (CSVs como Asaas
+                    # têm colunas extras com cabeçalho vazio → viram float → 'in' estoura)
+                    df_extrato.columns = [str(c) if not isinstance(c, str) else c for c in df_extrato.columns]
                     col_desc = next((c for c in df_extrato.columns if 'descri' in c or 'historico' in c), None)
                     col_val  = next((c for c in df_extrato.columns if 'valor' in c), None)
                     col_data = next((c for c in df_extrato.columns if 'data' in c or 'vencimento' in c or 'date' in c), None)
