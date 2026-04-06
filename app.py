@@ -871,6 +871,67 @@ with aba_dashboard:
         except Exception:
             st.info("Ainda não tem dados pra mostrar. Manda um gasto pro Guido!")
 
+    # ==================================================
+    # BARRAS DE PROGRESSO — METAS VS GASTOS REAIS
+    # ==================================================
+    # Teto é mensal. Se o filtro é "Ano todo", compara com o mês atual.
+    # Se é um mês específico, usa aquele mês.
+    try:
+        req_lim_dash = requests.get(f"{API_URL}/limites/", params={"usuario_id": USUARIO_ID})
+        if req_lim_dash.status_code == 200:
+            limites_dash = req_lim_dash.json()
+            if limites_dash:
+                # Determina qual mês usar pra comparação
+                if filtro_mes:
+                    params_meta = {"usuario_id": USUARIO_ID, "ano": filtro_ano, "mes": filtro_mes}
+                    label_periodo_meta = f"{filtro_mes_label}/{filtro_ano}"
+                else:
+                    params_meta = {"usuario_id": USUARIO_ID, "ano": filtro_ano, "mes": _mes_atual}
+                    label_periodo_meta = f"{_MESES[_mes_atual]}/{filtro_ano}"
+
+                req_hist_metas = requests.get(f"{API_URL}/transacoes/historico", params=params_meta)
+                if req_hist_metas.status_code == 200:
+                    hist_metas = req_hist_metas.json()
+                    # Agrupa gastos (só saídas, exclui transferência interna) por categoria
+                    gastos_por_cat = {}
+                    for tx in hist_metas:
+                        if tx.get("confirmado") and tx.get("valor", 0) < 0:
+                            cat = tx.get("categoria", "")
+                            if "transferência interna" not in cat.lower():
+                                gastos_por_cat[cat] = gastos_por_cat.get(cat, 0) + abs(tx["valor"])
+
+                    # Monta as barras de progresso
+                    st.divider()
+                    st.markdown(f"### 🎯 Suas metas · {label_periodo_meta}")
+
+                    for lim in sorted(limites_dash, key=lambda x: x.get("categoria", "")):
+                        cat_nome = lim["categoria"]
+                        teto = lim["valor_teto"]
+                        gasto = gastos_por_cat.get(cat_nome, 0)
+                        pct = gasto / teto if teto > 0 else 0
+
+                        # Cor conforme consumo
+                        if pct > 1.0:
+                            cor = "#EF4444"  # vermelho — estourou
+                            emoji = "🔴"
+                        elif pct >= 0.7:
+                            cor = "#F5A623"  # âmbar — atenção
+                            emoji = "🟡"
+                        else:
+                            cor = "#1D9E75"  # verde — tranquilo
+                            emoji = "🟢"
+
+                        col_nome_m, col_barra_m = st.columns([1.2, 2])
+                        col_nome_m.markdown(f"{emoji} **{cat_nome}**")
+                        col_nome_m.caption(f"R$ {gasto:,.2f} de R$ {teto:,.2f}")
+
+                        # Progress bar (Streamlit clampeia em 0-1, então pra >100% mando 1.0)
+                        col_barra_m.progress(min(pct, 1.0))
+                        if pct > 1.0:
+                            col_barra_m.caption(f"⚠️ Estourou {pct:.0%} do teto!")
+    except Exception:
+        pass  # sem limites ou sem conexão — não mostra a seção
+
     with col_quarentena:
         st.markdown("### ⏳ Pra revisar")
         st.caption("O Guido anotou, mas quer sua confirmação antes de entrar na conta.")
@@ -1341,6 +1402,21 @@ with aba_categorias:
 
         st.divider()
         st.markdown("#### 📊 Seus tetos")
+
+        # Busca gastos do período pra mostrar ao lado de cada teto
+        _gastos_cat_metas = {}
+        try:
+            _params_metas_tab = {"usuario_id": USUARIO_ID, "ano": filtro_ano, "mes": filtro_mes or _mes_atual}
+            _req_h_metas = requests.get(f"{API_URL}/transacoes/historico", params=_params_metas_tab)
+            if _req_h_metas.status_code == 200:
+                for _tx in _req_h_metas.json():
+                    if _tx.get("confirmado") and _tx.get("valor", 0) < 0:
+                        _c = _tx.get("categoria", "")
+                        if "transferência interna" not in _c.lower():
+                            _gastos_cat_metas[_c] = _gastos_cat_metas.get(_c, 0) + abs(_tx["valor"])
+        except Exception:
+            pass
+
         try:
             req_limites = requests.get(f"{API_URL}/limites/", params={"usuario_id": USUARIO_ID})
             if req_limites.status_code == 200:
@@ -1348,8 +1424,11 @@ with aba_categorias:
                 if limites_lista:
                     for limite in limites_lista:
                         l_nome, l_valor, l_edit, l_del = st.columns([3, 2, 1, 1])
-                        l_nome.write(f"**{limite['categoria']}**")
-                        l_valor.write(f"R$ {limite['valor_teto']:,.2f}")
+                        _gasto_cat = _gastos_cat_metas.get(limite['categoria'], 0)
+                        _pct = _gasto_cat / limite['valor_teto'] if limite['valor_teto'] > 0 else 0
+                        _emoji = "🔴" if _pct > 1 else ("🟡" if _pct >= 0.7 else "🟢")
+                        l_nome.write(f"{_emoji} **{limite['categoria']}**")
+                        l_valor.write(f"R$ {_gasto_cat:,.2f} / R$ {limite['valor_teto']:,.2f}")
                         if l_edit.button("✏️", key=f"edit_lim_{limite['id']}", help="Alterar valor"):
                             st.session_state[f"_editando_limite_{limite['id']}"] = True
                         if l_del.button("🗑️", key=f"del_lim_{limite['id']}", help="Excluir teto"):
