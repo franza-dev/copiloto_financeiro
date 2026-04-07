@@ -153,9 +153,79 @@ def _eh_consulta(texto: str) -> bool:
         "quanto gastei", "quanto eu gastei", "meu saldo", "como tá",
         "como está", "resumo", "meta", "teto", "limite", "saldo",
         "sobrou", "quanto falta", "quanto tenho", "balanço",
+        "quanto posso", "quanto ainda", "quanto resta", "categoria",
     ]
     texto_lower = texto.lower()
     return any(t in texto_lower for t in termos)
+
+
+def _consulta_categoria_especifica(texto: str, db: Session, usuario_id: int) -> str | None:
+    """Se o usuário pergunta sobre uma categoria específica, retorna o saldo detalhado.
+    Retorna None se não detectar categoria na pergunta."""
+    from datetime import date as _date
+    texto_lower = texto.lower()
+
+    # Busca todos os limites do usuário
+    limites = db.query(models.LimiteCategoria).filter(
+        models.LimiteCategoria.usuario_id == usuario_id
+    ).all()
+    if not limites:
+        return None
+
+    # Tenta encontrar qual categoria o usuário está perguntando
+    categoria_encontrada = None
+    for lim in limites:
+        cat_lower = lim.categoria.lower()
+        # Checa se o nome da categoria (ou parte significativa) aparece na pergunta
+        # Ex: "alimentação" em "quanto tenho de alimentação?"
+        # Ex: "transporte" em "como tá meu teto de transporte?"
+        palavras_cat = cat_lower.split()
+        for palavra in palavras_cat:
+            if len(palavra) >= 4 and palavra in texto_lower:
+                categoria_encontrada = lim
+                break
+        if categoria_encontrada:
+            break
+
+    if not categoria_encontrada:
+        return None
+
+    # Calcula gasto do mês atual nessa categoria
+    hoje = _date.today()
+    prefixo = f"{hoje.year:04d}-{hoje.month:02d}"
+    gasto = db.query(func.sum(models.Transacao.valor)).filter(
+        models.Transacao.usuario_id == usuario_id,
+        models.Transacao.confirmado == True,
+        models.Transacao.categoria == categoria_encontrada.categoria,
+        models.Transacao.data.like(f"{prefixo}%"),
+        models.Transacao.valor < 0,
+        models.Transacao.categoria != "Transferência Interna",
+    ).scalar() or 0
+
+    gasto_abs = abs(gasto)
+    teto = categoria_encontrada.valor_teto
+    disponivel = max(teto - gasto_abs, 0)
+    pct_usado = (gasto_abs / teto * 100) if teto > 0 else 0
+    pct_disponivel = max(100 - pct_usado, 0)
+
+    if pct_usado > 100:
+        emoji = "🔴"
+        status = f"Você já *estourou* o teto em R$ {gasto_abs - teto:,.2f}!"
+    elif pct_usado >= 70:
+        emoji = "🟡"
+        status = "Atenção, tá chegando perto do limite."
+    else:
+        emoji = "🟢"
+        status = "Tá tranquilo por enquanto."
+
+    return (
+        f"{emoji} *{categoria_encontrada.categoria}*\n\n"
+        f"🎯 Teto mensal: R$ {teto:,.2f}\n"
+        f"💸 Gasto esse mês: R$ {gasto_abs:,.2f}\n"
+        f"💰 Disponível: R$ {disponivel:,.2f}\n"
+        f"📊 Usado: {pct_usado:.0f}% · Disponível: {pct_disponivel:.0f}%\n\n"
+        f"{status}"
+    )
 
 
 def _eh_saudacao_ou_conversa(texto: str) -> bool:
@@ -464,8 +534,13 @@ async def webhook_evolution(request: Request, db: Session = Depends(database.get
         # Saudação ou conversa casual — responde amigavelmente
         resposta = _responder_conversa(texto, usuario.nome.split()[0])
     elif _eh_consulta(texto):
-        # Consulta de saldo/metas
-        resposta = _gerar_resumo(db, usuario.id)
+        # Primeiro tenta consulta de categoria específica
+        resposta_cat = _consulta_categoria_especifica(texto, db, usuario.id)
+        if resposta_cat:
+            resposta = resposta_cat
+        else:
+            # Consulta geral de saldo/metas
+            resposta = _gerar_resumo(db, usuario.id)
     else:
         # Lançamento de transação
         resposta = _processar_lancamento(texto, db, usuario.id)
