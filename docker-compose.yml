@@ -35,6 +35,17 @@ services:
     restart: always
 
   # WhatsApp — Evolution API (gateway de mensagens)
+  # PostgreSQL local só pro Evolution API (isolado do Neon do app)
+  evolution-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=evolution
+      - POSTGRES_PASSWORD=evo_guido_2026
+      - POSTGRES_DB=evolution
+    volumes:
+      - evolution_db_data:/var/lib/postgresql/data
+    restart: always
+
   evolution-api:
     image: atendai/evolution-api:v2.2.3
     environment:
@@ -44,12 +55,17 @@ services:
       - WEBHOOK_GLOBAL_ENABLED=true
       - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
       - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
-      - DATABASE_ENABLED=false
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://evolution:evo_guido_2026@evolution-db:5432/evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=false
       - LOG_LEVEL=WARN
     ports:
       - "8080:8080"
     volumes:
       - evolution_data:/evolution/instances
+    depends_on:
+      - evolution-db
     restart: always
 
   # Serviço on-demand — roda só quando for emitir/renovar certificado
@@ -63,3 +79,4 @@ volumes:
   certbot-www:
   certbot-conf:
   evolution_data:
+  evolution_db_data:
