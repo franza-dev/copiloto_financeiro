@@ -47,7 +47,7 @@ services:
     restart: always
 
   evolution-api:
-    image: atendai/evolution-api:v2.2.5
+    image: atendai/evolution-api:v2.2.3
     environment:
       - SERVER_URL=http://evolution-api:8080
       - AUTHENTICATION_API_KEY=6G0wq9IrB5EweYBFaetFBh96p8J9bUZKJGGe6_2G9MY
