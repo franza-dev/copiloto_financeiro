@@ -158,6 +158,63 @@ def _eh_consulta(texto: str) -> bool:
     return any(t in texto_lower for t in termos)
 
 
+def _eh_saudacao_ou_conversa(texto: str) -> bool:
+    """Detecta se a mensagem é uma saudação ou conversa casual (não financeira)."""
+    texto_lower = texto.lower().strip().rstrip("!?.,:;")
+    # Saudações diretas
+    saudacoes = [
+        "oi", "olá", "ola", "hey", "eai", "e aí", "fala", "bom dia",
+        "boa tarde", "boa noite", "tudo bem", "tudo bom", "como vai",
+        "opa", "salve", "hello", "hi", "obrigado", "obrigada", "valeu",
+        "vlw", "brigado", "brigada", "tchau", "até mais", "ate mais",
+        "flw", "falou",
+    ]
+    if any(texto_lower == s or texto_lower.startswith(s + " ") for s in saudacoes):
+        return True
+    # Mensagens muito curtas sem números provavelmente não são lançamentos
+    if len(texto_lower) < 8 and not any(c.isdigit() for c in texto_lower):
+        return True
+    return False
+
+
+def _responder_conversa(texto: str, nome: str) -> str:
+    """Gera uma resposta conversacional amigável com viés financeiro."""
+    texto_lower = texto.lower().strip()
+
+    if any(s in texto_lower for s in ["bom dia", "boa tarde", "boa noite"]):
+        periodo = "dia"
+        if "tarde" in texto_lower:
+            periodo = "tarde"
+        elif "noite" in texto_lower:
+            periodo = "noite"
+        return (
+            f"Boa {periodo}, {nome}! 😊\n\n"
+            "Tô aqui pra te ajudar com o dinheiro.\n\n"
+            "Me manda o que gastou ou pergunte como tá o mês. Alguns exemplos:\n"
+            '• *"gastei 80 em esmalte"*\n'
+            '• *"recebi 500 do cliente"*\n'
+            '• *"quanto gastei esse mês?"*\n'
+            '• *"como tá meu saldo?"*'
+        )
+
+    if any(s in texto_lower for s in ["obrigad", "valeu", "vlw", "brigad"]):
+        return f"Sempre às ordens, {nome}! 💪\nQuando precisar, é só chamar."
+
+    if any(s in texto_lower for s in ["tchau", "até", "ate", "flw", "falou"]):
+        return f"Até mais, {nome}! 👋\nTô aqui 24h se precisar."
+
+    # Saudação genérica
+    return (
+        f"E aí, {nome}! 👋 Sou o Guido, seu braço direito financeiro.\n\n"
+        "Me conta o que rolou:\n"
+        '• *"gastei 45 no uber pra reunião"*\n'
+        '• *"comprei 150 no crédito do Nubank"*\n'
+        '• *"quanto gastei esse mês?"*\n'
+        '• *"como tá o teto de alimentação?"*\n\n'
+        "Pode mandar por texto que eu organizo tudo pra você. 🤓"
+    )
+
+
 def _gerar_resumo(db: Session, usuario_id: int) -> str:
     """Gera resumo financeiro do mês atual formatado pra WhatsApp."""
     hoje = date.today()
@@ -403,6 +460,9 @@ async def webhook_evolution(request: Request, db: Session = Depends(database.get
     if not usuario:
         # Usuário não vinculado — fluxo de vinculação
         resposta = _processar_vinculacao(telefone, texto, db)
+    elif _eh_saudacao_ou_conversa(texto):
+        # Saudação ou conversa casual — responde amigavelmente
+        resposta = _responder_conversa(texto, usuario.nome.split()[0])
     elif _eh_consulta(texto):
         # Consulta de saldo/metas
         resposta = _gerar_resumo(db, usuario.id)
