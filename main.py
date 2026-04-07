@@ -36,6 +36,8 @@ _MIGRACOES = [
     # Fase 1 — datas competência/caixa + transferências (transações)
     "ALTER TABLE transacoes ADD COLUMN data_caixa VARCHAR",
     "ALTER TABLE transacoes ADD COLUMN tx_transferencia_id INTEGER",
+    # WhatsApp — telefone do usuário pra vinculação
+    "ALTER TABLE usuarios ADD COLUMN telefone VARCHAR",
 ]
 with database.engine.connect() as _conn:
     for _sql in _MIGRACOES:
@@ -124,6 +126,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Registra rotas do WhatsApp
+from whatsapp_handler import router as whatsapp_router
+app.include_router(whatsapp_router)
+
 # --- SCHEMAS (Envelopes Pydantic) ---
 class ConfirmacaoGasto(BaseModel):
     data: str
@@ -169,6 +175,7 @@ class RegistroUsuario(BaseModel):
     nome: str
     email: str
     senha: str
+    telefone: Optional[str] = None  # +5511999999999 — vincula WhatsApp
 
 class LoginUsuario(BaseModel):
     email: str
@@ -184,7 +191,16 @@ class CategoriaCreate(BaseModel):
 def registrar_usuario(dados: RegistroUsuario, db: Session = Depends(database.get_db)):
     if db.query(models.Usuario).filter(models.Usuario.email == dados.email).first():
         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
-    novo = models.Usuario(nome=dados.nome, email=dados.email, senha_hash=hash_senha(dados.senha))
+    if dados.telefone:
+        tel_existente = db.query(models.Usuario).filter(models.Usuario.telefone == dados.telefone).first()
+        if tel_existente:
+            raise HTTPException(status_code=400, detail="Esse telefone já está vinculado a outra conta")
+    novo = models.Usuario(
+        nome=dados.nome,
+        email=dados.email,
+        senha_hash=hash_senha(dados.senha),
+        telefone=dados.telefone or None,
+    )
     db.add(novo)
     db.commit()
     db.refresh(novo)

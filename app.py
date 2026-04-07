@@ -510,6 +510,12 @@ if "usuario_id" not in st.session_state:
             with st.form("form_registro"):
                 nome_reg = st.text_input("Nome completo", placeholder="Seu nome")
                 email_reg = st.text_input("E-mail", placeholder="seu@email.com", key="email_reg")
+                tel_reg = st.text_input(
+                    "WhatsApp (com DDD)",
+                    placeholder="Ex: 11999999999",
+                    key="tel_reg",
+                    help="Pra usar o Guido pelo WhatsApp. Só números, sem +55.",
+                )
                 senha_reg = st.text_input("Senha", type="password", placeholder="Mínimo 6 caracteres", key="senha_reg")
                 senha_conf = st.text_input("Confirmar senha", type="password", placeholder="Repita a senha")
                 st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
@@ -524,8 +530,18 @@ if "usuario_id" not in st.session_state:
                         st.session_state.auth_msg = {"tipo": "aviso", "texto": "A senha deve ter pelo menos 6 caracteres."}
                         st.rerun()
                     else:
+                        # Formata telefone pro padrão internacional (55 + DDD + número)
+                        telefone_fmt = None
+                        if tel_reg and tel_reg.strip():
+                            apenas_digitos = ''.join(c for c in tel_reg if c.isdigit())
+                            if not apenas_digitos.startswith("55"):
+                                apenas_digitos = "55" + apenas_digitos
+                            telefone_fmt = apenas_digitos
                         try:
-                            res = requests.post(f"{API_URL}/auth/registrar", json={"nome": nome_reg, "email": email_reg, "senha": senha_reg})
+                            payload_reg = {"nome": nome_reg, "email": email_reg, "senha": senha_reg}
+                            if telefone_fmt:
+                                payload_reg["telefone"] = telefone_fmt
+                            res = requests.post(f"{API_URL}/auth/registrar", json=payload_reg)
                             if res.status_code == 200:
                                 u = res.json()
                                 st.session_state.usuario_id   = u["id"]
@@ -534,7 +550,12 @@ if "usuario_id" not in st.session_state:
                                 cookie_manager.set("usuario_nome", u["nome"],    key="set_nome_reg")
                                 st.rerun()
                             elif res.status_code == 400:
-                                st.session_state.auth_msg = {"tipo": "erro", "texto": "Este e-mail já está cadastrado."}
+                                try:
+                                    detail = res.json().get("detail", "")
+                                except Exception:
+                                    detail = ""
+                                msg_erro = detail if detail else "E-mail ou telefone já cadastrado."
+                                st.session_state.auth_msg = {"tipo": "erro", "texto": msg_erro}
                                 st.rerun()
                             else:
                                 st.session_state.auth_msg = {"tipo": "erro", "texto": f"Erro no servidor ({res.status_code})."}

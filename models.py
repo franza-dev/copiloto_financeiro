@@ -8,6 +8,7 @@ class Usuario(Base):
     nome = Column(String)
     email = Column(String, unique=True)
     senha_hash = Column(String, nullable=True)
+    telefone = Column(String, nullable=True, unique=True)  # +5511999999999 — vincula WhatsApp
     contas = relationship("ContaBancaria", back_populates="dono")
 
 class ContaBancaria(Base):
