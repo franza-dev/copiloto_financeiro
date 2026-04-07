@@ -37,7 +37,7 @@ def _normalizar_telefone(telefone: str) -> str:
 
 
 def _enviar_whatsapp(telefone: str, texto: str):
-    """Envia mensagem de texto via Evolution API."""
+    """Envia mensagem de texto via Evolution API (compatível com v1.8+ e v2.3+)."""
     try:
         url = f"{EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}"
         payload = {
@@ -45,7 +45,8 @@ def _enviar_whatsapp(telefone: str, texto: str):
             "text": texto,
         }
         headers = {"apikey": EVOLUTION_API_KEY, "Content-Type": "application/json"}
-        http_requests.post(url, json=payload, headers=headers, timeout=10)
+        resp = http_requests.post(url, json=payload, headers=headers, timeout=10)
+        print(f"[WhatsApp] Enviado pra {telefone}: {resp.status_code}")
     except Exception as e:
         print(f"[WhatsApp] Erro ao enviar mensagem: {e}")
 

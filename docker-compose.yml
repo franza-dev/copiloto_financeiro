@@ -4,9 +4,9 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8000
     env_file: .env
     environment:
-      - EVOLUTION_API_URL=http://evolution-api:8080
-      - EVOLUTION_API_KEY=6G0wq9IrB5EweYBFaetFBh96p8J9bUZKJGGe6_2G9MY
-      - EVOLUTION_INSTANCE=guido
+      - EVOLUTION_API_URL=https://evolution-evolution-api.yijtjr.easypanel.host
+      - EVOLUTION_API_KEY=D29D9664210A-49D4-BC14-FC3345AE894D
+      - EVOLUTION_INSTANCE=Guido
     restart: always
 
   frontend:
