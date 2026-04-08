@@ -4,6 +4,8 @@ Recebe mensagens via webhook do Evolution API, identifica o usuário pelo
 telefone, e processa lançamentos/consultas usando a mesma IA e API.
 """
 import os
+import base64
+import tempfile
 import requests as http_requests
 from datetime import date
 from fastapi import APIRouter, Request, Depends
@@ -54,6 +56,65 @@ def _enviar_whatsapp(telefone: str, texto: str):
 def _buscar_usuario_por_telefone(db: Session, telefone: str):
     """Busca usuário pelo telefone normalizado."""
     return db.query(models.Usuario).filter(models.Usuario.telefone == telefone).first()
+
+
+def _baixar_audio_whatsapp(message_data: dict) -> str | None:
+    """Baixa áudio de uma mensagem WhatsApp via Evolution API.
+
+    Usa o endpoint getBase64FromMediaMessage pra pegar o áudio em base64,
+    decodifica e salva como arquivo temporário. Retorna o path do arquivo
+    ou None se falhar.
+    """
+    try:
+        key = message_data.get("key", {})
+        message_id = key.get("id")
+        remote_jid = key.get("remoteJid")
+
+        if not message_id or not remote_jid:
+            print("[WhatsApp] Áudio sem key/id/remoteJid")
+            return None
+
+        # Pega o áudio como base64 via Evolution API
+        url = f"{EVOLUTION_API_URL}/chat/getBase64FromMediaMessage/{EVOLUTION_INSTANCE}"
+        payload = {
+            "message": {
+                "key": {
+                    "remoteJid": remote_jid,
+                    "id": message_id,
+                }
+            }
+        }
+        headers = {"apikey": EVOLUTION_API_KEY, "Content-Type": "application/json"}
+        resp = http_requests.post(url, json=payload, headers=headers, timeout=30)
+
+        if resp.status_code != 200:
+            print(f"[WhatsApp] Erro ao baixar áudio: {resp.status_code} {resp.text[:200]}")
+            return None
+
+        data = resp.json()
+        b64_data = data.get("base64", "")
+        mimetype = data.get("mimetype", "audio/ogg")
+
+        if not b64_data:
+            print("[WhatsApp] Áudio base64 vazio")
+            return None
+
+        # Remove prefixo data:audio/... se existir
+        if "," in b64_data:
+            b64_data = b64_data.split(",", 1)[1]
+
+        # Decodifica e salva como arquivo temporário
+        audio_bytes = base64.b64decode(b64_data)
+        ext = ".ogg" if "ogg" in mimetype else ".mp4" if "mp4" in mimetype else ".wav"
+        tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False, prefix="guido_audio_")
+        tmp.write(audio_bytes)
+        tmp.close()
+        print(f"[WhatsApp] Áudio salvo: {tmp.name} ({len(audio_bytes)} bytes)")
+        return tmp.name
+
+    except Exception as e:
+        print(f"[WhatsApp] Erro ao processar áudio: {e}")
+        return None
 
 
 def _contas_do_usuario(db: Session, usuario_id: int) -> list:
@@ -355,9 +416,14 @@ def _gerar_resumo(db: Session, usuario_id: int) -> str:
 
 
 def _processar_lancamento(texto: str, db: Session, usuario_id: int) -> str:
-    """Processa um lançamento via IA (mesma lógica do endpoint /transacoes/ia)."""
+    """Processa um lançamento por TEXTO via IA."""
     contas = _contas_do_usuario(db, usuario_id)
     dados_ia = ia_engine.processar_texto_ia(texto, contas=contas)
+    return _processar_lancamento_from_ia(dados_ia, db, usuario_id)
+
+
+def _processar_lancamento_from_ia(dados_ia: dict, db: Session, usuario_id: int) -> str:
+    """Processa o resultado da IA (comum pra texto e áudio)."""
 
     # Config de limite
     if dados_ia.get("natureza") == "config_limite":
@@ -519,17 +585,47 @@ async def webhook_evolution(request: Request, db: Session = Depends(database.get
         or ""
     ).strip()
 
-    if not texto:
-        # Áudio, imagem, etc — por enquanto não processamos
-        _enviar_whatsapp(telefone, "Por enquanto só entendo mensagens de texto. 😅 Me escreve o que gastou!")
-        return {"status": "ok", "reason": "non-text"}
+    # Detecta se é mensagem de áudio
+    eh_audio = bool(message.get("audioMessage"))
+
+    if not texto and not eh_audio:
+        # Imagem, vídeo, sticker, etc — não processamos
+        _enviar_whatsapp(telefone, "Por enquanto entendo texto e áudio. 😅 Me escreve ou grava o que gastou!")
+        return {"status": "ok", "reason": "unsupported-type"}
 
     # Fluxo principal
     usuario = _buscar_usuario_por_telefone(db, telefone)
 
     if not usuario:
+        if eh_audio:
+            _enviar_whatsapp(telefone, "Opa, antes de mandar áudio preciso te reconhecer. 😊 Me manda seu email cadastrado.")
+            return {"status": "ok", "reason": "audio-sem-vinculo"}
         # Usuário não vinculado — fluxo de vinculação
         resposta = _processar_vinculacao(telefone, texto, db)
+    elif eh_audio:
+        # Processa áudio via Gemini
+        _enviar_whatsapp(telefone, "🎧 Tô ouvindo seu áudio...")
+        audio_path = _baixar_audio_whatsapp(data)
+        if audio_path:
+            try:
+                contas = _contas_do_usuario(db, usuario.id)
+                dados_ia = ia_engine.processar_audio_ia(audio_path, contas=contas)
+                # Reutiliza a mesma lógica de lançamento
+                if dados_ia.get("natureza") == "config_limite":
+                    resposta = _processar_lancamento_from_ia(dados_ia, db, usuario.id)
+                else:
+                    resposta = _processar_lancamento_from_ia(dados_ia, db, usuario.id)
+            except Exception as e:
+                print(f"[WhatsApp] Erro ao processar áudio: {e}")
+                resposta = "Não consegui entender o áudio. 😕 Tenta mandar de novo ou escreve o que gastou."
+            finally:
+                # Limpa arquivo temporário
+                try:
+                    os.remove(audio_path)
+                except Exception:
+                    pass
+        else:
+            resposta = "Não consegui baixar o áudio. 😕 Tenta mandar de novo?"
     elif _eh_saudacao_ou_conversa(texto):
         # Saudação ou conversa casual — responde amigavelmente
         resposta = _responder_conversa(texto, usuario.nome.split()[0])
@@ -542,7 +638,7 @@ async def webhook_evolution(request: Request, db: Session = Depends(database.get
             # Consulta geral de saldo/metas
             resposta = _gerar_resumo(db, usuario.id)
     else:
-        # Lançamento de transação
+        # Lançamento de transação por texto
         resposta = _processar_lancamento(texto, db, usuario.id)
 
     _enviar_whatsapp(telefone, resposta)
