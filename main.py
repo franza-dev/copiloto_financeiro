@@ -130,6 +130,10 @@ app = FastAPI(
 from whatsapp_handler import router as whatsapp_router
 app.include_router(whatsapp_router)
 
+# Registra rotas do Asaas (pagamento)
+from asaas_handler import router as asaas_router
+app.include_router(asaas_router)
+
 # --- SCHEMAS (Envelopes Pydantic) ---
 class ConfirmacaoGasto(BaseModel):
     data: str
