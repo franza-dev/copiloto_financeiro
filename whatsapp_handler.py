@@ -87,7 +87,7 @@ def _baixar_audio_whatsapp(message_data: dict) -> str | None:
         headers = {"apikey": EVOLUTION_API_KEY, "Content-Type": "application/json"}
         resp = http_requests.post(url, json=payload, headers=headers, timeout=30)
 
-        if resp.status_code != 200:
+        if resp.status_code not in (200, 201):
             print(f"[WhatsApp] Erro ao baixar áudio: {resp.status_code} {resp.text[:200]}")
             return None
 
