@@ -691,22 +691,6 @@ with aba_dashboard:
         texto_input = st.text_input("Conta pro Guido", placeholder="Ex: gastei 45 no Uber pra reunião do negócio", label_visibility="collapsed")
         enviou = st.form_submit_button("Manda pro Guido", use_container_width=True, type="primary")
 
-    # Áudio fica fora do form (st.audio_input não funciona dentro de form)
-    audio_input = st.audio_input("🎙️ Ou grava um áudio")
-    if audio_input:
-        if st.button("Enviar áudio pro Guido", use_container_width=True):
-            with st.spinner("O Guido tá ouvindo seu áudio..."):
-                res_audio = requests.post(
-                    f"{API_URL}/transacoes/ia/audio",
-                    params={"usuario_id": USUARIO_ID},
-                    files={"file": ("audio.wav", audio_input.getvalue(), "audio/wav")}
-                )
-                if res_audio.status_code == 200:
-                    st.success("Anotado. Confere aí na revisão.")
-                    st.rerun()
-                else:
-                    st.error("Deu ruim com o áudio. Tenta de novo?")
-
     if enviou:
         if texto_input:
             with st.spinner("O Guido tá ouvindo..."):
