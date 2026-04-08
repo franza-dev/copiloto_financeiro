@@ -678,7 +678,7 @@ LISTA_BASE = [
 ]
 
 # --- ABAS ---
-aba_dashboard, aba_extrato, aba_contas, aba_categorias, aba_perfil = st.tabs(["🌱 Painel", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas", "👤 Minha Conta"])
+aba_dashboard, aba_graficos, aba_extrato, aba_contas, aba_categorias, aba_perfil = st.tabs(["🌱 Painel", "📊 Dashboards", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas", "👤 Minha Conta"])
 
 # ==========================================
 # ABA 1: PAINEL
@@ -1016,7 +1016,372 @@ with aba_dashboard:
             st.error("Aguardando a API...")
 
 # ==========================================
-# ABA 2: EXTRATO
+# ABA: DASHBOARDS
+# ==========================================
+with aba_graficos:
+    st.markdown("### 📊 Dashboards")
+
+    # --- Controles globais ---
+    ctrl1, ctrl2, ctrl3 = st.columns([1, 1, 2])
+    with ctrl1:
+        dash_ano = st.selectbox("Ano", _anos_opcoes, index=0, key="dash_ano")
+    with ctrl2:
+        dash_mes_label = st.selectbox("Mês", _MESES, index=_mes_atual, key="dash_mes")
+        dash_mes = None if dash_mes_label == "Ano todo" else _MESES.index(dash_mes_label)
+    with ctrl3:
+        dash_visao = st.radio("Visão", ["Todos", "🏢 Negócio", "🏠 Casa"], horizontal=True, key="dash_visao")
+
+    try:
+        # Busca transações do ano inteiro (pra gráfico de linha) e do período selecionado
+        _params_ano = {"usuario_id": USUARIO_ID, "ano": dash_ano}
+        _params_periodo_dash = {"usuario_id": USUARIO_ID, "ano": dash_ano}
+        if dash_mes:
+            _params_periodo_dash["mes"] = dash_mes
+
+        req_dash_ano = requests.get(f"{API_URL}/transacoes/historico", params=_params_ano)
+        req_dash = requests.get(f"{API_URL}/transacoes/historico", params=_params_periodo_dash)
+
+        # Período anterior (mês anterior ou ano anterior)
+        if dash_mes and dash_mes > 1:
+            _params_ant = {"usuario_id": USUARIO_ID, "ano": dash_ano, "mes": dash_mes - 1}
+        elif dash_mes and dash_mes == 1:
+            _params_ant = {"usuario_id": USUARIO_ID, "ano": dash_ano - 1, "mes": 12}
+        else:
+            _params_ant = {"usuario_id": USUARIO_ID, "ano": dash_ano - 1}
+        req_dash_ant = requests.get(f"{API_URL}/transacoes/historico", params=_params_ant)
+
+        # Limites/tetos
+        req_lim_dash2 = requests.get(f"{API_URL}/limites/", params={"usuario_id": USUARIO_ID})
+
+        if req_dash.status_code == 200 and req_dash_ano.status_code == 200:
+            import numpy as np
+
+            hist_dash = req_dash.json()
+            hist_ano = req_dash_ano.json()
+            hist_ant = req_dash_ant.json() if req_dash_ant.status_code == 200 else []
+            tetos_dash = {l["categoria"]: l["valor_teto"] for l in (req_lim_dash2.json() if req_lim_dash2.status_code == 200 else [])}
+
+            df = pd.DataFrame(hist_dash) if hist_dash else pd.DataFrame()
+            df_ano = pd.DataFrame(hist_ano) if hist_ano else pd.DataFrame()
+            df_ant = pd.DataFrame(hist_ant) if hist_ant else pd.DataFrame()
+
+            # Filtra transferências internas
+            for _d in [df, df_ano, df_ant]:
+                if not _d.empty and 'categoria' in _d.columns:
+                    _d.drop(_d[_d['categoria'].str.contains('Transferência Interna', case=False, na=False)].index, inplace=True)
+
+            # Aplica filtro de visão (Casa/Negócio)
+            if dash_visao == "🏢 Negócio" and not df.empty:
+                df = df[df['tipo'] == 'PJ']
+                df_ano = df_ano[df_ano['tipo'] == 'PJ']
+            elif dash_visao == "🏠 Casa" and not df.empty:
+                df = df[df['tipo'] == 'PF']
+                df_ano = df_ano[df_ano['tipo'] == 'PF']
+
+            if not df.empty:
+                receitas = df[df['valor'] > 0]['valor'].sum()
+                despesas = abs(df[df['valor'] < 0]['valor'].sum())
+                saldo = receitas - despesas
+
+                # Período anterior
+                receitas_ant = df_ant[df_ant['valor'] > 0]['valor'].sum() if not df_ant.empty and 'valor' in df_ant.columns else 0
+                despesas_ant = abs(df_ant[df_ant['valor'] < 0]['valor'].sum()) if not df_ant.empty and 'valor' in df_ant.columns else 0
+
+                # Faturamento MEI (receitas PJ do ano, independente do filtro de mês)
+                faturamento_mei = df_ano[(df_ano['valor'] > 0) & (df_ano['tipo'] == 'PJ')]['valor'].sum() if not df_ano.empty else 0
+                limite_mei = 81000
+                pct_mei = faturamento_mei / limite_mei * 100
+
+                # Maior categoria de despesa
+                gastos_cat = df[df['valor'] < 0].groupby('categoria')['valor'].apply(lambda x: abs(x.sum()))
+                maior_cat = gastos_cat.idxmax() if not gastos_cat.empty else "—"
+                maior_cat_val = gastos_cat.max() if not gastos_cat.empty else 0
+
+                # % Negócio vs Casa
+                desp_pj = abs(df[(df['valor'] < 0) & (df['tipo'] == 'PJ')]['valor'].sum())
+                desp_pf = abs(df[(df['valor'] < 0) & (df['tipo'] == 'PF')]['valor'].sum())
+                total_desp = desp_pj + desp_pf
+                pct_neg = (desp_pj / total_desp * 100) if total_desp > 0 else 0
+
+                # ── KPIs (6 cards) ──────────────────────────────
+                st.divider()
+                k1, k2, k3, k4, k5, k6 = st.columns(6)
+                delta_saldo = saldo - (receitas_ant - despesas_ant) if receitas_ant > 0 else None
+                k1.metric("Saldo líquido", f"R$ {saldo:,.0f}", delta=f"R$ {delta_saldo:,.0f}" if delta_saldo else None)
+                delta_rec = f"{(receitas - receitas_ant) / receitas_ant * 100:+.0f}%" if receitas_ant > 0 else None
+                k2.metric("Receitas", f"R$ {receitas:,.0f}", delta=delta_rec)
+                delta_desp = f"{(despesas - despesas_ant) / despesas_ant * 100:+.0f}%" if despesas_ant > 0 else None
+                k3.metric("Despesas", f"R$ {despesas:,.0f}", delta=delta_desp, delta_color="inverse")
+                k4.metric("Maior gasto", f"{maior_cat[:18]}", delta=f"R$ {maior_cat_val:,.0f}")
+                k5.metric("Negócio vs Casa", f"{pct_neg:.0f}% / {100-pct_neg:.0f}%")
+                cor_mei = "normal" if pct_mei < 60 else "off" if pct_mei < 85 else "inverse"
+                k6.metric("Limite MEI", f"{pct_mei:.0f}%", delta=f"R$ {max(0, limite_mei - faturamento_mei):,.0f} restante")
+
+                st.divider()
+
+                # ── GRÁFICO 1: Linha do tempo mensal ─────────────
+                if not df_ano.empty:
+                    df_ano['_data'] = pd.to_datetime(df_ano['data'], errors='coerce')
+                    df_ano['_mes'] = df_ano['_data'].dt.month
+
+                    meses_label = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+                    rec_mensal = df_ano[df_ano['valor'] > 0].groupby('_mes')['valor'].sum()
+                    desp_mensal = df_ano[df_ano['valor'] < 0].groupby('_mes')['valor'].apply(lambda x: abs(x.sum()))
+
+                    fig_linha = go.Figure()
+                    fig_linha.add_trace(go.Scatter(
+                        x=meses_label, y=[rec_mensal.get(m, 0) for m in range(1, 13)],
+                        name='Receitas', mode='lines+markers',
+                        line=dict(color='#1D9E75', width=3),
+                        marker=dict(size=8, color='#1D9E75'),
+                        fill='tonexty', fillcolor='rgba(29,158,117,0.08)',
+                        hovertemplate='<b>%{x}</b><br>Receitas: R$ %{y:,.2f}<extra></extra>',
+                    ))
+                    fig_linha.add_trace(go.Scatter(
+                        x=meses_label, y=[desp_mensal.get(m, 0) for m in range(1, 13)],
+                        name='Despesas', mode='lines+markers',
+                        line=dict(color='#E24B4A', width=3),
+                        marker=dict(size=8, color='#E24B4A'),
+                        hovertemplate='<b>%{x}</b><br>Despesas: R$ %{y:,.2f}<extra></extra>',
+                    ))
+                    if not desp_mensal.empty:
+                        media_desp = desp_mensal.mean()
+                        fig_linha.add_hline(y=media_desp, line_dash='dash', line_color='#475569',
+                                           annotation_text=f'Média: R$ {media_desp:,.0f}', annotation_position='right')
+
+                    fig_linha.update_layout(
+                        title=dict(text='Evolução mensal — Receitas vs Despesas', font=dict(color='#F1F5F9')),
+                        paper_bgcolor='#111827', plot_bgcolor='#1E293B',
+                        font=dict(color='#94A3B8'),
+                        legend=dict(bgcolor='#1E293B', bordercolor='#334155'),
+                        hovermode='x unified',
+                        xaxis=dict(gridcolor='#1E293B', showgrid=True),
+                        yaxis=dict(gridcolor='#1E293B', showgrid=True, tickprefix='R$ '),
+                        height=380, margin=dict(l=60, r=20, t=50, b=40),
+                    )
+                    st.plotly_chart(fig_linha, use_container_width=True, config={"displayModeBar": False})
+
+                # ── GRÁFICO 2+3: Barras por categoria + Donut ────
+                col_barras, col_donut = st.columns([2, 1])
+
+                with col_barras:
+                    if not gastos_cat.empty:
+                        df_cat = df[df['valor'] < 0].copy()
+                        df_cat['valor_abs'] = df_cat['valor'].abs()
+                        df_cat['origem'] = df_cat['tipo'].map({'PJ': '🏢 Negócio', 'PF': '🏠 Casa'})
+                        df_agrup = df_cat.groupby(['categoria', 'origem'])['valor_abs'].sum().reset_index()
+                        df_agrup = df_agrup.sort_values('valor_abs', ascending=True)
+
+                        fig_barras = go.Figure()
+                        for origem, cor in [('🏢 Negócio', '#1D9E75'), ('🏠 Casa', '#9FE1CB')]:
+                            sub = df_agrup[df_agrup['origem'] == origem]
+                            if not sub.empty:
+                                fig_barras.add_trace(go.Bar(
+                                    y=sub['categoria'], x=sub['valor_abs'],
+                                    name=origem, orientation='h', marker_color=cor,
+                                    hovertemplate='%{y}<br>R$ %{x:,.2f}<extra>' + origem + '</extra>',
+                                ))
+                        # Linhas de teto
+                        for cat, teto in tetos_dash.items():
+                            if cat in gastos_cat.index:
+                                fig_barras.add_vline(x=teto, line_dash='dot', line_color='#F5A623',
+                                                     annotation_text=f'Teto: R$ {teto:,.0f}',
+                                                     annotation_font_color='#F5A623')
+                        fig_barras.update_layout(
+                            barmode='stack',
+                            title=dict(text='Despesas por categoria', font=dict(color='#F1F5F9')),
+                            paper_bgcolor='#111827', plot_bgcolor='#1E293B',
+                            font=dict(color='#94A3B8'),
+                            xaxis=dict(tickprefix='R$ ', gridcolor='#1E293B'),
+                            yaxis=dict(gridcolor='#1E293B'),
+                            legend=dict(bgcolor='#1E293B'),
+                            height=max(300, gastos_cat.nunique() * 40 + 80),
+                            margin=dict(l=140, r=60, t=50, b=40),
+                        )
+                        st.plotly_chart(fig_barras, use_container_width=True, config={"displayModeBar": False})
+
+                with col_donut:
+                    if total_desp > 0:
+                        fig_donut = go.Figure(go.Pie(
+                            labels=['🏢 Negócio', '🏠 Casa'],
+                            values=[desp_pj, desp_pf],
+                            hole=0.65,
+                            marker=dict(colors=['#1D9E75', '#9FE1CB'], line=dict(color='#111827', width=3)),
+                            textinfo='label+percent',
+                            hovertemplate='%{label}<br>R$ %{value:,.2f}<br>%{percent}<extra></extra>',
+                        ))
+                        fig_donut.update_layout(
+                            annotations=[dict(text=f'R$ {total_desp:,.0f}', x=0.5, y=0.5,
+                                              font_size=16, font=dict(color='#F1F5F9'), showarrow=False)],
+                            paper_bgcolor='#111827', plot_bgcolor='#111827',
+                            font=dict(color='#94A3B8'), showlegend=True,
+                            legend=dict(bgcolor='#1E293B'),
+                            height=300, margin=dict(l=20, r=20, t=40, b=20),
+                        )
+                        st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
+
+                # ── GRÁFICO 4: Progresso de tetos ────────────────
+                if tetos_dash:
+                    st.divider()
+                    st.markdown("#### 🎯 Teto de gastos por categoria")
+                    for cat, teto in sorted(tetos_dash.items()):
+                        gasto = gastos_cat.get(cat, 0)
+                        pct = (gasto / teto * 100) if teto > 0 else 0
+                        cor = "#1D9E75" if pct < 70 else "#F5A623" if pct < 90 else "#E24B4A"
+                        alerta = "🔔 " if pct >= 80 else ""
+                        tc1, tc2 = st.columns([3, 1])
+                        with tc1:
+                            st.markdown(f"**{alerta}{cat}**")
+                            st.markdown(
+                                f'<div style="background:#1E293B;border-radius:6px;height:12px;overflow:hidden;">'
+                                f'<div style="background:{cor};width:{min(pct, 100)}%;height:100%;border-radius:6px;'
+                                f'transition:width 0.3s;"></div></div>',
+                                unsafe_allow_html=True,
+                            )
+                        with tc2:
+                            st.markdown(
+                                f"<div style='text-align:right;color:{cor};font-size:13px;'>"
+                                f"R$ {gasto:,.0f} / R$ {teto:,.0f}<br>"
+                                f"<span style='font-size:11px;'>{pct:.0f}%</span></div>",
+                                unsafe_allow_html=True,
+                            )
+                        st.markdown("<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
+
+                # ── GRÁFICO 5+6: Heatmap + Gauge MEI ────────────
+                col_heat, col_gauge = st.columns([2, 1])
+
+                with col_heat:
+                    if dash_mes and not df.empty:
+                        import calendar as _cal
+                        df['_data'] = pd.to_datetime(df['data'], errors='coerce')
+                        gastos_dia = df[df['valor'] < 0].groupby(df['_data'].dt.day)['valor'].apply(lambda x: abs(x.sum()))
+                        _, dias_no_mes = _cal.monthrange(dash_ano, dash_mes)
+                        primeiro_dia = _cal.weekday(dash_ano, dash_mes, 1)
+                        matriz = np.zeros(35)
+                        for dia in range(1, dias_no_mes + 1):
+                            idx = primeiro_dia + dia - 1
+                            if idx < 35:
+                                matriz[idx] = gastos_dia.get(dia, 0)
+                        matriz = matriz.reshape(5, 7)
+                        dias_semana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+                        semanas = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5']
+                        fig_heat = go.Figure(go.Heatmap(
+                            z=matriz, x=dias_semana, y=semanas,
+                            colorscale=[[0, '#1E293B'], [0.3, '#085041'], [0.7, '#1D9E75'], [1, '#9FE1CB']],
+                            hovertemplate='%{x} · %{y}<br>R$ %{z:,.2f}<extra></extra>',
+                            showscale=True,
+                        ))
+                        fig_heat.update_layout(
+                            title=dict(text='Intensidade de gastos por dia', font=dict(color='#F1F5F9')),
+                            paper_bgcolor='#111827', plot_bgcolor='#1E293B',
+                            font=dict(color='#94A3B8'),
+                            height=280, margin=dict(l=60, r=20, t=50, b=40),
+                        )
+                        st.plotly_chart(fig_heat, use_container_width=True, config={"displayModeBar": False})
+                    else:
+                        st.caption("Selecione um mês específico pra ver o heatmap de gastos por dia.")
+
+                with col_gauge:
+                    fig_gauge = go.Figure(go.Indicator(
+                        mode="gauge+number",
+                        value=pct_mei,
+                        number=dict(suffix="%", font=dict(color="#F1F5F9", size=32)),
+                        gauge=dict(
+                            axis=dict(range=[0, 100], tickcolor="#94A3B8"),
+                            bar=dict(color="#1D9E75" if pct_mei < 60 else "#F5A623" if pct_mei < 85 else "#E24B4A"),
+                            bgcolor="#1E293B", borderwidth=0,
+                            steps=[
+                                dict(range=[0, 60], color="#0F2A1F"),
+                                dict(range=[60, 85], color="#1A1400"),
+                                dict(range=[85, 100], color="#1A0505"),
+                            ],
+                            threshold=dict(line=dict(color="#E24B4A", width=4), thickness=0.8, value=85),
+                        ),
+                        title=dict(text="Limite MEI utilizado", font=dict(color="#94A3B8", size=14)),
+                    ))
+                    faltam_mei = max(0, limite_mei - faturamento_mei)
+                    fig_gauge.update_layout(
+                        paper_bgcolor='#111827', font=dict(color='#94A3B8'),
+                        height=280, margin=dict(l=20, r=20, t=60, b=20),
+                        annotations=[dict(
+                            text=f"R$ {faturamento_mei:,.0f} de R$ {limite_mei:,.0f}<br>"
+                                 f"<span style='color:#94A3B8'>Faltam R$ {faltam_mei:,.0f}</span>",
+                            x=0.5, y=-0.1, showarrow=False,
+                            font=dict(color='#F1F5F9', size=12), align='center',
+                        )],
+                    )
+                    st.plotly_chart(fig_gauge, use_container_width=True, config={"displayModeBar": False})
+
+                # ── GRÁFICO 7: Comparativo mensal ────────────────
+                if not df_ant.empty and not df.empty:
+                    st.divider()
+                    cats_atual = df[df['valor'] < 0].groupby('categoria')['valor'].apply(lambda x: abs(x.sum()))
+                    cats_anterior = df_ant[df_ant['valor'] < 0].groupby('categoria')['valor'].apply(lambda x: abs(x.sum()))
+                    todas_cats = sorted(set(cats_atual.index) | set(cats_anterior.index))
+
+                    fig_comp = go.Figure()
+                    fig_comp.add_trace(go.Bar(
+                        name='Período anterior', x=todas_cats,
+                        y=[cats_anterior.get(c, 0) for c in todas_cats],
+                        marker_color='#334155',
+                        hovertemplate='%{x}<br>Anterior: R$ %{y:,.2f}<extra></extra>',
+                    ))
+                    fig_comp.add_trace(go.Bar(
+                        name='Período atual', x=todas_cats,
+                        y=[cats_atual.get(c, 0) for c in todas_cats],
+                        marker_color='#1D9E75',
+                        hovertemplate='%{x}<br>Atual: R$ %{y:,.2f}<extra></extra>',
+                    ))
+                    fig_comp.update_layout(
+                        barmode='group',
+                        title=dict(text='Comparativo de despesas — período atual vs anterior', font=dict(color='#F1F5F9')),
+                        paper_bgcolor='#111827', plot_bgcolor='#1E293B',
+                        font=dict(color='#94A3B8'),
+                        xaxis=dict(gridcolor='#1E293B', tickangle=-30),
+                        yaxis=dict(tickprefix='R$ ', gridcolor='#1E293B'),
+                        legend=dict(bgcolor='#1E293B'),
+                        height=360, margin=dict(l=60, r=20, t=50, b=80),
+                    )
+                    st.plotly_chart(fig_comp, use_container_width=True, config={"displayModeBar": False})
+
+                # ── INSIGHTS ─────────────────────────────────────
+                st.divider()
+                from insights_engine import gerar_insights, Insight
+                lista_insights = gerar_insights(df, df_ant, tetos_dash, faturamento_mei, limite_mei)
+
+                st.markdown("#### 🧠 Análises e Insights")
+                st.caption("Gerado automaticamente com base nos seus dados do período selecionado.")
+
+                if not lista_insights:
+                    st.success("✅ Tudo em ordem! Nenhuma observação importante para este período.")
+                else:
+                    CORES_INSIGHT = {
+                        "critico": ("#FCEBEB", "#E24B4A", "#791F1F"),
+                        "atencao": ("#FAEEDA", "#F5A623", "#633806"),
+                        "info": ("#E6F1FB", "#378ADD", "#0C447C"),
+                        "ok": ("#E1F5EE", "#1D9E75", "#085041"),
+                    }
+                    cols_ins = st.columns(2)
+                    for idx, ins in enumerate(lista_insights):
+                        bg, border, text_cor = CORES_INSIGHT.get(ins.tipo, ("#1E293B", "#94A3B8", "#F1F5F9"))
+                        with cols_ins[idx % 2]:
+                            st.markdown(
+                                f'<div style="background:{bg};border-left:4px solid {border};'
+                                f'border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:12px;">'
+                                f'<div style="font-size:15px;font-weight:500;color:{text_cor};margin-bottom:6px;">'
+                                f'{ins.emoji} {ins.titulo}</div>'
+                                f'<div style="font-size:13px;color:{text_cor};opacity:0.85;line-height:1.6;">'
+                                f'{ins.mensagem}</div></div>',
+                                unsafe_allow_html=True,
+                            )
+
+            else:
+                st.info("Ainda não tem dados pra mostrar nos dashboards. Manda um gasto pro Guido!")
+    except Exception as e:
+        st.error(f"Erro ao carregar dashboards: {e}")
+
+# ==========================================
+# ABA: EXTRATO
 # ==========================================
 with aba_extrato:
     st.markdown("### 🧾 Tudo que já passou pelo Guido")
