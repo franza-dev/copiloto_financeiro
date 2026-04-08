@@ -9,6 +9,12 @@ class Usuario(Base):
     email = Column(String, unique=True)
     senha_hash = Column(String, nullable=True)
     telefone = Column(String, nullable=True, unique=True)  # +5511999999999 — vincula WhatsApp
+
+    # Assinatura (Asaas)
+    assinatura_cliente_asaas = Column(String, nullable=True)  # customer_id no Asaas
+    assinatura_id_asaas = Column(String, nullable=True)       # subscription_id no Asaas
+    assinatura_ativa_ate = Column(String, nullable=True)       # YYYY-MM-DD — acesso até essa data
+
     contas = relationship("ContaBancaria", back_populates="dono")
 
 class ContaBancaria(Base):

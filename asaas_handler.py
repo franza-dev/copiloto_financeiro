@@ -15,6 +15,7 @@ import os
 import string
 import secrets
 import requests as http_requests
+from datetime import date, timedelta
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
 import hashlib
@@ -126,28 +127,39 @@ async def webhook_asaas(request: Request, db: Session = Depends(database.get_db)
         print(f"[Asaas] Cliente {customer_id} sem email — não cria conta")
         return {"status": "error", "detail": "cliente sem email"}
 
+    # Calcula data de acesso: 30 dias a partir de hoje
+    acesso_ate = (date.today() + timedelta(days=30)).isoformat()
+
+    # Busca subscription_id (se veio de assinatura recorrente)
+    subscription_id = payment.get("subscription") or None
+
     # Verifica se já existe conta com esse email
     usuario_existente = db.query(models.Usuario).filter(
         models.Usuario.email == email
     ).first()
 
     if usuario_existente:
-        # Usuário já existe — atualiza telefone se não tinha
+        # Usuário já existe — atualiza dados da assinatura
         if telefone and not usuario_existente.telefone:
             usuario_existente.telefone = telefone
-            db.commit()
-        print(f"[Asaas] Usuário {email} já existe (id={usuario_existente.id})")
+        usuario_existente.assinatura_cliente_asaas = customer_id
+        if subscription_id:
+            usuario_existente.assinatura_id_asaas = subscription_id
+        usuario_existente.assinatura_ativa_ate = acesso_ate
+        db.commit()
+        print(f"[Asaas] Usuário {email} já existe (id={usuario_existente.id}) — assinatura renovada até {acesso_ate}")
 
-        # Mesmo assim manda boas-vindas se tiver WhatsApp
+        # Manda confirmação se tiver WhatsApp
         if telefone:
             _enviar_whatsapp(telefone, (
                 f"Oi, {usuario_existente.nome.split()[0]}! 🎉\n\n"
-                "Pagamento confirmado. Sua assinatura do Guido tá ativa!\n\n"
+                "Pagamento confirmado. Sua assinatura do Guido tá ativa "
+                f"até *{acesso_ate}*!\n\n"
                 "Acesse seu painel:\n"
                 "👉 app.chamaoguido.com\n\n"
                 "E pode me mandar seus gastos aqui pelo WhatsApp também. 🤓"
             ))
-        return {"status": "ok", "detail": "usuario já existia"}
+        return {"status": "ok", "detail": "assinatura renovada"}
 
     # Cria nova conta
     senha_raw = _gerar_senha(8)
@@ -156,6 +168,9 @@ async def webhook_asaas(request: Request, db: Session = Depends(database.get_db)
         email=email,
         senha_hash=_hash_senha(senha_raw),
         telefone=telefone if telefone else None,
+        assinatura_cliente_asaas=customer_id,
+        assinatura_id_asaas=subscription_id,
+        assinatura_ativa_ate=acesso_ate,
     )
 
     try:

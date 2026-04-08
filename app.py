@@ -678,7 +678,7 @@ LISTA_BASE = [
 ]
 
 # --- ABAS ---
-aba_dashboard, aba_extrato, aba_contas, aba_categorias = st.tabs(["🌱 Painel", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas"])
+aba_dashboard, aba_extrato, aba_contas, aba_categorias, aba_perfil = st.tabs(["🌱 Painel", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas", "👤 Minha Conta"])
 
 # ==========================================
 # ABA 1: PAINEL
@@ -1485,3 +1485,142 @@ with aba_categorias:
                     st.info("Ainda não tem teto definido.")
         except:
             st.caption("Aguardando a API...")
+
+# ==========================================
+# ABA 5: MINHA CONTA
+# ==========================================
+with aba_perfil:
+    st.markdown("### 👤 Minha Conta")
+
+    try:
+        req_perfil = requests.get(f"{API_URL}/auth/minha-conta", params={"usuario_id": USUARIO_ID})
+        if req_perfil.status_code == 200:
+            perfil = req_perfil.json()
+
+            # --- Status da assinatura ---
+            with st.container(border=True):
+                st.markdown("#### 📋 Sua assinatura")
+                status_ass = perfil.get("assinatura_status", "sem_assinatura")
+                data_ate = perfil.get("assinatura_ativa_ate")
+
+                if status_ass == "ativa":
+                    st.success(f"✅ Assinatura ativa até **{data_ate}**")
+                elif status_ass == "inativa":
+                    st.warning(f"⚠️ Assinatura expirou em {data_ate}. Renove pra continuar usando.")
+                    st.markdown(
+                        '[Renovar assinatura](https://www.asaas.com/c/vmfmrar60lf95ayr)',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.info("Você ainda não tem assinatura ativa.")
+                    st.markdown(
+                        '[Assinar o Guido — R$ 19/mês](https://www.asaas.com/c/vmfmrar60lf95ayr)',
+                        unsafe_allow_html=True,
+                    )
+
+                if status_ass == "ativa" and perfil.get("assinatura_ativa_ate"):
+                    st.divider()
+                    if st.button("Cancelar assinatura", type="secondary"):
+                        st.session_state["_confirmar_cancelamento"] = True
+
+                    if st.session_state.get("_confirmar_cancelamento"):
+                        st.warning(
+                            "Tem certeza? Seu acesso continua ativo até o fim do período pago "
+                            f"(**{data_ate}**). Depois disso, você perde acesso ao painel e ao WhatsApp."
+                        )
+                        col_sim, col_nao = st.columns(2)
+                        if col_sim.button("Sim, cancelar", type="primary"):
+                            res_cancel = requests.post(
+                                f"{API_URL}/auth/cancelar-assinatura",
+                                params={"usuario_id": USUARIO_ID},
+                            )
+                            if res_cancel.status_code == 200:
+                                msg_cancel = res_cancel.json().get("mensagem", "Cancelado")
+                                st.success(msg_cancel)
+                                st.session_state.pop("_confirmar_cancelamento", None)
+                                st.rerun()
+                            else:
+                                st.error("Erro ao cancelar. Tenta de novo ou entre em contato.")
+                        if col_nao.button("Não, manter"):
+                            st.session_state.pop("_confirmar_cancelamento", None)
+                            st.rerun()
+
+            st.divider()
+
+            # --- Dados pessoais ---
+            with st.container(border=True):
+                st.markdown("#### ✏️ Seus dados")
+                with st.form("form_perfil"):
+                    pf_nome = st.text_input("Nome", value=perfil.get("nome", ""))
+                    pf_email = st.text_input("Email", value=perfil.get("email", ""))
+                    pf_tel_raw = perfil.get("telefone", "") or ""
+                    # Remove prefixo 55 pra exibir mais limpo
+                    pf_tel_display = pf_tel_raw[2:] if pf_tel_raw.startswith("55") else pf_tel_raw
+                    pf_tel = st.text_input(
+                        "WhatsApp (com DDD)",
+                        value=pf_tel_display,
+                        help="Só números, sem +55",
+                    )
+
+                    if st.form_submit_button("Salvar alterações", type="primary"):
+                        payload_perfil = {}
+                        if pf_nome != perfil.get("nome"):
+                            payload_perfil["nome"] = pf_nome
+                        if pf_email != perfil.get("email"):
+                            payload_perfil["email"] = pf_email
+                        if pf_tel != pf_tel_display:
+                            payload_perfil["telefone"] = pf_tel
+
+                        if payload_perfil:
+                            res_perfil = requests.put(
+                                f"{API_URL}/auth/perfil",
+                                params={"usuario_id": USUARIO_ID},
+                                json=payload_perfil,
+                            )
+                            if res_perfil.status_code == 200:
+                                st.success("Dados atualizados.")
+                                # Atualiza o nome no cookie/session se mudou
+                                if "nome" in payload_perfil:
+                                    st.session_state.usuario_nome = payload_perfil["nome"]
+                                    cookie_manager.set("usuario_nome", payload_perfil["nome"], key="set_nome_perfil")
+                                st.rerun()
+                            else:
+                                try:
+                                    detail = res_perfil.json().get("detail", "")
+                                except Exception:
+                                    detail = ""
+                                st.error(detail or "Erro ao salvar.")
+                        else:
+                            st.info("Nenhuma alteração detectada.")
+
+            # --- Trocar senha ---
+            with st.container(border=True):
+                st.markdown("#### 🔑 Trocar senha")
+                with st.form("form_trocar_senha"):
+                    senha_atual = st.text_input("Senha atual", type="password")
+                    senha_nova = st.text_input("Nova senha", type="password", placeholder="Mínimo 6 caracteres")
+                    senha_conf = st.text_input("Confirmar nova senha", type="password")
+
+                    if st.form_submit_button("Trocar senha", type="primary"):
+                        if not senha_atual or not senha_nova:
+                            st.warning("Preenche os dois campos.")
+                        elif senha_nova != senha_conf:
+                            st.error("As senhas não coincidem.")
+                        elif len(senha_nova) < 6:
+                            st.warning("A nova senha precisa ter pelo menos 6 caracteres.")
+                        else:
+                            res_senha = requests.put(
+                                f"{API_URL}/auth/perfil",
+                                params={"usuario_id": USUARIO_ID},
+                                json={"senha_atual": senha_atual, "senha_nova": senha_nova},
+                            )
+                            if res_senha.status_code == 200:
+                                st.success("Senha trocada.")
+                            else:
+                                try:
+                                    detail = res_senha.json().get("detail", "")
+                                except Exception:
+                                    detail = ""
+                                st.error(detail or "Erro ao trocar senha.")
+    except Exception:
+        st.error("Erro ao carregar dados da conta.")

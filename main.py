@@ -38,6 +38,10 @@ _MIGRACOES = [
     "ALTER TABLE transacoes ADD COLUMN tx_transferencia_id INTEGER",
     # WhatsApp — telefone do usuário pra vinculação
     "ALTER TABLE usuarios ADD COLUMN telefone VARCHAR",
+    # Assinatura (Asaas)
+    "ALTER TABLE usuarios ADD COLUMN assinatura_cliente_asaas VARCHAR",
+    "ALTER TABLE usuarios ADD COLUMN assinatura_id_asaas VARCHAR",
+    "ALTER TABLE usuarios ADD COLUMN assinatura_ativa_ate VARCHAR",
 ]
 with database.engine.connect() as _conn:
     for _sql in _MIGRACOES:
@@ -185,6 +189,13 @@ class LoginUsuario(BaseModel):
     email: str
     senha: str
 
+class AtualizarPerfil(BaseModel):
+    nome: Optional[str] = None
+    email: Optional[str] = None
+    telefone: Optional[str] = None
+    senha_atual: Optional[str] = None
+    senha_nova: Optional[str] = None
+
 class CategoriaCreate(BaseModel):
     nome: str
     tipo: str = "Ambos"
@@ -216,6 +227,98 @@ def login_usuario(dados: LoginUsuario, db: Session = Depends(database.get_db)):
     if not usuario or not verificar_senha(dados.senha, usuario.senha_hash):
         raise HTTPException(status_code=401, detail="E-mail ou senha incorretos")
     return usuario
+
+@app.get("/auth/minha-conta")
+def minha_conta(usuario_id: int, db: Session = Depends(database.get_db)):
+    u = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not u:
+        raise HTTPException(status_code=404)
+    return {
+        "id": u.id,
+        "nome": u.nome,
+        "email": u.email,
+        "telefone": u.telefone,
+        "assinatura_ativa_ate": u.assinatura_ativa_ate,
+        "assinatura_status": (
+            "ativa" if u.assinatura_ativa_ate and u.assinatura_ativa_ate >= date.today().isoformat()
+            else "inativa" if u.assinatura_ativa_ate
+            else "sem_assinatura"
+        ),
+    }
+
+@app.put("/auth/perfil")
+def atualizar_perfil(dados: AtualizarPerfil, usuario_id: int, db: Session = Depends(database.get_db)):
+    u = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not u:
+        raise HTTPException(status_code=404)
+
+    if dados.nome and dados.nome.strip():
+        u.nome = dados.nome.strip()
+
+    if dados.email and dados.email.strip():
+        email_novo = dados.email.strip().lower()
+        if email_novo != u.email:
+            existente = db.query(models.Usuario).filter(models.Usuario.email == email_novo).first()
+            if existente:
+                raise HTTPException(status_code=400, detail="Esse email já está em uso por outra conta")
+            u.email = email_novo
+
+    if dados.telefone is not None:
+        tel = ''.join(c for c in dados.telefone if c.isdigit()) if dados.telefone else None
+        if tel and not tel.startswith("55"):
+            tel = "55" + tel
+        if tel and tel != u.telefone:
+            existente = db.query(models.Usuario).filter(models.Usuario.telefone == tel).first()
+            if existente:
+                raise HTTPException(status_code=400, detail="Esse telefone já está vinculado a outra conta")
+        u.telefone = tel or u.telefone
+
+    if dados.senha_nova:
+        if not dados.senha_atual:
+            raise HTTPException(status_code=400, detail="Informe a senha atual pra trocar")
+        if not verificar_senha(dados.senha_atual, u.senha_hash):
+            raise HTTPException(status_code=400, detail="Senha atual incorreta")
+        if len(dados.senha_nova) < 6:
+            raise HTTPException(status_code=400, detail="A nova senha precisa ter pelo menos 6 caracteres")
+        u.senha_hash = hash_senha(dados.senha_nova)
+
+    db.commit()
+    return {"status": "Perfil atualizado"}
+
+@app.post("/auth/cancelar-assinatura")
+def cancelar_assinatura(usuario_id: int, db: Session = Depends(database.get_db)):
+    """Cancela a assinatura no Asaas mas mantém acesso até o fim do período pago."""
+    u = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not u:
+        raise HTTPException(status_code=404)
+
+    if not u.assinatura_id_asaas:
+        raise HTTPException(status_code=400, detail="Nenhuma assinatura ativa encontrada")
+
+    # Cancela no Asaas
+    import os
+    import requests as http_req
+    asaas_key = os.getenv("ASAAS_API_KEY", "")
+    if asaas_key:
+        try:
+            resp = http_req.delete(
+                f"https://api.asaas.com/v3/subscriptions/{u.assinatura_id_asaas}",
+                headers={"access_token": asaas_key},
+                timeout=10,
+            )
+            print(f"[Asaas] Cancelamento subscription {u.assinatura_id_asaas}: {resp.status_code}")
+        except Exception as e:
+            print(f"[Asaas] Erro ao cancelar: {e}")
+
+    # Limpa o subscription_id mas MANTÉM assinatura_ativa_ate (acesso até vencer)
+    u.assinatura_id_asaas = None
+    db.commit()
+
+    return {
+        "status": "Assinatura cancelada",
+        "acesso_ate": u.assinatura_ativa_ate,
+        "mensagem": f"Seu acesso continua ativo até {u.assinatura_ativa_ate or 'o fim do período'}.",
+    }
 
 # --- 2. ROTAS DE CONTAS E CATEGORIAS ---
 
