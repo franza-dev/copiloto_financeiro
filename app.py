@@ -1624,3 +1624,74 @@ with aba_perfil:
                                 st.error(detail or "Erro ao trocar senha.")
     except Exception:
         st.error("Erro ao carregar dados da conta.")
+
+    # ==========================================
+    # ADMIN — só aparece pra user ID 1
+    # ==========================================
+    if USUARIO_ID == 1:
+        st.divider()
+        st.markdown("### 🔧 Admin")
+
+        # --- Criar usuário free ---
+        with st.container(border=True):
+            st.markdown("#### ➕ Criar usuário gratuito (beta tester)")
+            with st.form("form_admin_criar_user", clear_on_submit=True):
+                adm_nome = st.text_input("Nome completo")
+                adm_email = st.text_input("Email")
+                adm_tel = st.text_input("WhatsApp (com DDD)", help="Recebe a senha por WhatsApp. Só números.")
+
+                if st.form_submit_button("Criar conta free", type="primary"):
+                    if adm_nome and adm_email:
+                        res_admin = requests.post(
+                            f"{API_URL}/admin/criar-usuario-free",
+                            params={
+                                "nome": adm_nome,
+                                "email": adm_email,
+                                "telefone": adm_tel,
+                                "admin_id": USUARIO_ID,
+                            },
+                        )
+                        if res_admin.status_code == 200:
+                            dados_criado = res_admin.json()
+                            st.success(
+                                f"Conta criada! Email: **{dados_criado['email']}** · "
+                                f"Senha: **{dados_criado['senha']}** · "
+                                f"WhatsApp: {'enviado' if dados_criado.get('whatsapp_enviado') else 'não enviado'}"
+                            )
+                        else:
+                            try:
+                                detail = res_admin.json().get("detail", "")
+                            except Exception:
+                                detail = ""
+                            st.error(detail or "Erro ao criar conta.")
+                    else:
+                        st.warning("Preenche nome e email.")
+
+        # --- Lista de usuários ---
+        with st.container(border=True):
+            st.markdown("#### 👥 Usuários cadastrados")
+            try:
+                req_users = requests.get(
+                    f"{API_URL}/admin/usuarios",
+                    params={"admin_id": USUARIO_ID},
+                )
+                if req_users.status_code == 200:
+                    users_list = req_users.json()
+                    if users_list:
+                        for u in users_list:
+                            status_label = {
+                                "free": "🟢 Free",
+                                "ativa": "🟢 Ativa",
+                                "inativa": "🔴 Expirada",
+                                "sem_assinatura": "⚪ Sem plano",
+                            }.get(u["assinatura_status"], u["assinatura_status"])
+
+                            st.markdown(
+                                f"**{u['nome']}** · {u['email']} · "
+                                f"{u.get('telefone') or 'sem tel'} · "
+                                f"{status_label}"
+                            )
+                    else:
+                        st.info("Nenhum usuário cadastrado.")
+            except Exception:
+                st.caption("Erro ao carregar lista.")

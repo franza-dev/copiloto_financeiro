@@ -320,6 +320,102 @@ def cancelar_assinatura(usuario_id: int, db: Session = Depends(database.get_db))
         "mensagem": f"Seu acesso continua ativo até {u.assinatura_ativa_ate or 'o fim do período'}.",
     }
 
+# --- ADMIN ---
+
+ADMIN_IDS = [1]  # IDs de usuários que podem acessar funções admin
+
+@app.post("/admin/criar-usuario-free")
+def criar_usuario_free(
+    nome: str,
+    email: str,
+    telefone: str = "",
+    admin_id: int = 0,
+    db: Session = Depends(database.get_db),
+):
+    """Cria um usuário com plano gratuito (beta tester). Só admins podem chamar."""
+    if admin_id not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Acesso restrito")
+
+    email = email.strip().lower()
+    if db.query(models.Usuario).filter(models.Usuario.email == email).first():
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
+
+    # Normaliza telefone
+    tel = None
+    if telefone and telefone.strip():
+        tel = ''.join(c for c in telefone if c.isdigit())
+        if tel and not tel.startswith("55"):
+            tel = "55" + tel
+        if tel:
+            existente = db.query(models.Usuario).filter(models.Usuario.telefone == tel).first()
+            if existente:
+                raise HTTPException(status_code=400, detail="Telefone já vinculado a outra conta")
+
+    # Gera senha aleatória
+    import secrets, string
+    alfabeto = string.ascii_letters + string.digits
+    alfabeto = alfabeto.replace("0", "").replace("O", "").replace("l", "").replace("I", "").replace("1", "")
+    senha_raw = ''.join(secrets.choice(alfabeto) for _ in range(8))
+
+    novo = models.Usuario(
+        nome=nome.strip(),
+        email=email,
+        senha_hash=hash_senha(senha_raw),
+        telefone=tel,
+        assinatura_ativa_ate="2099-12-31",  # free = acesso permanente
+    )
+    db.add(novo)
+    db.commit()
+    db.refresh(novo)
+
+    # Envia credenciais via WhatsApp se tiver telefone
+    if tel:
+        try:
+            from whatsapp_handler import _enviar_whatsapp
+            _enviar_whatsapp(tel, (
+                f"Oi, {nome.split()[0]}! 🎉\n\n"
+                "Você foi convidado pra testar o Guido — seu braço direito financeiro.\n\n"
+                f"📧 Email: {email}\n"
+                f"🔑 Senha: {senha_raw}\n\n"
+                "Acesse:\n"
+                "👉 app.chamaoguido.com\n\n"
+                "E pode me mandar seus gastos aqui pelo WhatsApp! 🤓"
+            ))
+        except Exception as e:
+            print(f"[Admin] Erro ao enviar WhatsApp: {e}")
+
+    return {
+        "status": "ok",
+        "usuario_id": novo.id,
+        "email": email,
+        "senha": senha_raw,
+        "plano": "free",
+        "whatsapp_enviado": bool(tel),
+    }
+
+@app.get("/admin/usuarios")
+def listar_usuarios(admin_id: int, db: Session = Depends(database.get_db)):
+    """Lista todos os usuários. Só admins."""
+    if admin_id not in ADMIN_IDS:
+        raise HTTPException(status_code=403)
+    usuarios = db.query(models.Usuario).all()
+    return [
+        {
+            "id": u.id,
+            "nome": u.nome,
+            "email": u.email,
+            "telefone": u.telefone,
+            "assinatura_ativa_ate": u.assinatura_ativa_ate,
+            "assinatura_status": (
+                "free" if u.assinatura_ativa_ate == "2099-12-31"
+                else "ativa" if u.assinatura_ativa_ate and u.assinatura_ativa_ate >= date.today().isoformat()
+                else "inativa" if u.assinatura_ativa_ate
+                else "sem_assinatura"
+            ),
+        }
+        for u in usuarios
+    ]
+
 # --- 2. ROTAS DE CONTAS E CATEGORIAS ---
 
 @app.post("/contas/")
