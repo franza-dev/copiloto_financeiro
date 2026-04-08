@@ -1320,22 +1320,24 @@ with aba_contas:
             except Exception as exc:
                 st.caption(f"💳 {cartao['nome']} — erro: {exc}")
 
-    st.divider()
-    st.markdown("#### ⚠️ Zona de perigo")
-    st.warning("Cuidado: essas ações não dá pra desfazer.")
-    c_perigo1, c_perigo2 = st.columns(2)
+    # Zona de perigo — só admin vê (evita que beta testers formatem o banco)
+    if USUARIO_ID == 1:
+        st.divider()
+        st.markdown("#### ⚠️ Zona de perigo")
+        st.warning("Cuidado: essas ações não dá pra desfazer.")
+        c_perigo1, c_perigo2 = st.columns(2)
 
-    if c_perigo1.button("🗑️ Apagar todas as transações", type="secondary"):
-        if requests.delete(f"{API_URL}/sistema/resetar-transacoes", params={"usuario_id": USUARIO_ID}).status_code == 200:
-            st.success("Tudo zerado.")
-            st.rerun()
+        if c_perigo1.button("🗑️ Apagar minhas transações", type="secondary"):
+            if requests.delete(f"{API_URL}/sistema/resetar-transacoes", params={"usuario_id": USUARIO_ID}).status_code == 200:
+                st.success("Tudo zerado.")
+                st.rerun()
 
-    if c_perigo2.button("🚨 Formatar banco (apaga TUDO)", type="primary"):
-        if requests.delete(f"{API_URL}/sistema/recriar-banco").status_code == 200:
-            st.success("Banco formatado. Entra de novo.")
-            del st.session_state.usuario_id
-            del st.session_state.usuario_nome
-            st.rerun()
+        if c_perigo2.button("🚨 Formatar banco (apaga TUDO)", type="primary"):
+            if requests.delete(f"{API_URL}/sistema/recriar-banco").status_code == 200:
+                st.success("Banco formatado. Entra de novo.")
+                del st.session_state.usuario_id
+                del st.session_state.usuario_nome
+                st.rerun()
 
 # ==========================================
 # ABA 4: CATEGORIAS E METAS
