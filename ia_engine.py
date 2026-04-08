@@ -148,10 +148,20 @@ def processar_audio_ia(caminho_audio, contas=None):
         prompt_completo = _montar_prompt(contas)
 
         # 1. Upload do arquivo para o servidor do Google
+        # Detecta mime type pelo nome do arquivo
+        mime_map = {".ogg": "audio/ogg", ".oga": "audio/ogg", ".mp4": "audio/mp4",
+                    ".m4a": "audio/mp4", ".wav": "audio/wav", ".mp3": "audio/mpeg",
+                    ".webm": "audio/webm", ".opus": "audio/ogg"}
+        ext = os.path.splitext(caminho_audio)[1].lower()
+        mime = mime_map.get(ext, "audio/ogg")
+
         with open(caminho_audio, "rb") as f:
             arquivo_gemini = client.files.upload(
                 file=f,
-                config=types.UploadFileConfig(display_name=caminho_audio)
+                config=types.UploadFileConfig(
+                    display_name=caminho_audio,
+                    mime_type=mime,
+                )
             )
 
         # 2. Processamento multimodal

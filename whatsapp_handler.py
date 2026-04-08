@@ -481,7 +481,7 @@ def _processar_lancamento_from_ia(dados_ia: dict, db: Session, usuario_id: int) 
 
     categoria = dados_ia.get("categoria", "A Classificar")
     tipo = dados_ia.get("tipo", "PF")
-    descricao = dados_ia.get("descricao", texto[:50])
+    descricao = dados_ia.get("descricao", "Lançamento por áudio")
 
     # Decide: vai direto ou quarentena
     vai_direto = bool(categoria and categoria != "A Classificar" and conta_id)
