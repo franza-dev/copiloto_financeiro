@@ -223,7 +223,7 @@ st.markdown("""
         [data-testid="stMetricValue"] {
             font-family: var(--guido-font-serif) !important;
             font-weight: 400 !important;
-            font-size: 1.9rem !important;
+            font-size: 1.1rem !important;
             color: var(--guido-green-mid) !important;
         }
 
