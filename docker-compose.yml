@@ -1,4 +1,15 @@
 services:
+  # PostgreSQL local — sempre ligado, sem cold start, sem Neon
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=guido
+      - POSTGRES_PASSWORD=guido_db_2026
+      - POSTGRES_DB=guido
+    volumes:
+      - guido_db_data:/var/lib/postgresql/data
+    restart: always
+
   api:
     build: .
     command: uvicorn main:app --host 0.0.0.0 --port 8000
@@ -7,6 +18,9 @@ services:
       - EVOLUTION_API_URL=https://evolution-evolution-api.yijtjr.easypanel.host
       - EVOLUTION_API_KEY=D29D9664210A-49D4-BC14-FC3345AE894D
       - EVOLUTION_INSTANCE=Guido
+      - DATABASE_URL=postgresql://guido:guido_db_2026@db:5432/guido
+    depends_on:
+      - db
     restart: always
 
   frontend:
@@ -46,5 +60,6 @@ services:
       - certbot-conf:/etc/letsencrypt
 
 volumes:
+  guido_db_data:
   certbot-www:
   certbot-conf:
