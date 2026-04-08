@@ -859,7 +859,10 @@ def resetar_transacoes(usuario_id: int, db: Session = Depends(database.get_db)):
     return {"status": "Transações zeradas!"}
 
 @app.delete("/sistema/recriar-banco")
-def recriar_banco():
+def recriar_banco(admin_id: int = 0):
+    """PERIGOSO: apaga tudo e recria. Só admin."""
+    if admin_id not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
     models.Base.metadata.drop_all(bind=database.engine)
     models.Base.metadata.create_all(bind=database.engine)
     return {"status": "Banco limpo!"}
