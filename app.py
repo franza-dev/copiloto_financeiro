@@ -1328,16 +1328,83 @@ with aba_contas:
         c_perigo1, c_perigo2 = st.columns(2)
 
         if c_perigo1.button("🗑️ Apagar minhas transações", type="secondary"):
-            if requests.delete(f"{API_URL}/sistema/resetar-transacoes", params={"usuario_id": USUARIO_ID}).status_code == 200:
-                st.success("Tudo zerado.")
-                st.rerun()
+            st.session_state["_confirmar_apagar_tx"] = True
 
         if c_perigo2.button("🚨 Formatar banco (apaga TUDO)", type="primary"):
-            if requests.delete(f"{API_URL}/sistema/recriar-banco").status_code == 200:
-                st.success("Banco formatado. Entra de novo.")
-                del st.session_state.usuario_id
-                del st.session_state.usuario_nome
-                st.rerun()
+            st.session_state["_confirmar_formatar"] = True
+
+        # Confirmação: apagar transações
+        if st.session_state.get("_confirmar_apagar_tx"):
+            st.markdown("##### 🔐 Confirme com sua senha pra apagar todas as transações")
+            with st.form("form_confirmar_apagar_tx"):
+                senha_conf_tx = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+                col_ok, col_cancel = st.columns(2)
+                confirmar = col_ok.form_submit_button("Confirmar exclusão", type="primary")
+                cancelar = col_cancel.form_submit_button("Cancelar")
+                if confirmar:
+                    res_login = requests.post(
+                        f"{API_URL}/auth/login",
+                        json={"email": st.session_state.get("usuario_email", ""), "senha": senha_conf_tx},
+                    )
+                    # Fallback: tenta buscar o email se não tiver no session_state
+                    if res_login.status_code == 401:
+                        try:
+                            perfil_r = requests.get(f"{API_URL}/auth/minha-conta", params={"usuario_id": USUARIO_ID})
+                            if perfil_r.status_code == 200:
+                                email_real = perfil_r.json().get("email", "")
+                                res_login = requests.post(
+                                    f"{API_URL}/auth/login",
+                                    json={"email": email_real, "senha": senha_conf_tx},
+                                )
+                        except Exception:
+                            pass
+                    if res_login.status_code == 200:
+                        requests.delete(f"{API_URL}/sistema/resetar-transacoes", params={"usuario_id": USUARIO_ID})
+                        st.session_state.pop("_confirmar_apagar_tx", None)
+                        st.success("Transações apagadas.")
+                        st.rerun()
+                    else:
+                        st.error("Senha incorreta.")
+                if cancelar:
+                    st.session_state.pop("_confirmar_apagar_tx", None)
+                    st.rerun()
+
+        # Confirmação: formatar banco
+        if st.session_state.get("_confirmar_formatar"):
+            st.markdown("##### 🔐 Confirme com sua senha pra FORMATAR O BANCO INTEIRO")
+            with st.form("form_confirmar_formatar"):
+                senha_conf_fmt = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+                col_ok2, col_cancel2 = st.columns(2)
+                confirmar2 = col_ok2.form_submit_button("Confirmar formatação", type="primary")
+                cancelar2 = col_cancel2.form_submit_button("Cancelar")
+                if confirmar2:
+                    res_login2 = requests.post(
+                        f"{API_URL}/auth/login",
+                        json={"email": st.session_state.get("usuario_email", ""), "senha": senha_conf_fmt},
+                    )
+                    if res_login2.status_code == 401:
+                        try:
+                            perfil_r2 = requests.get(f"{API_URL}/auth/minha-conta", params={"usuario_id": USUARIO_ID})
+                            if perfil_r2.status_code == 200:
+                                email_real2 = perfil_r2.json().get("email", "")
+                                res_login2 = requests.post(
+                                    f"{API_URL}/auth/login",
+                                    json={"email": email_real2, "senha": senha_conf_fmt},
+                                )
+                        except Exception:
+                            pass
+                    if res_login2.status_code == 200:
+                        requests.delete(f"{API_URL}/sistema/recriar-banco", params={"admin_id": USUARIO_ID})
+                        st.session_state.pop("_confirmar_formatar", None)
+                        st.success("Banco formatado. Entra de novo.")
+                        del st.session_state.usuario_id
+                        del st.session_state.usuario_nome
+                        st.rerun()
+                    else:
+                        st.error("Senha incorreta.")
+                if cancelar2:
+                    st.session_state.pop("_confirmar_formatar", None)
+                    st.rerun()
 
 # ==========================================
 # ABA 4: CATEGORIAS E METAS
