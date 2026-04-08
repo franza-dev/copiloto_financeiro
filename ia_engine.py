@@ -77,15 +77,7 @@ JSON: {"natureza":"config_limite","categoria":"Alimentação","valor":800.0,"tip
 
 
 def _montar_contexto_contas(contas):
-    """Formata a lista de contas do usuário em texto legível pra injeção no prompt.
-
-    Args:
-        contas: lista de dicts com chaves id, nome, banco, tipo, modalidade.
-                Pode ser None ou vazia.
-
-    Returns:
-        String formatada pra colar no prompt, ou aviso se sem contas.
-    """
+    """Formata a lista de contas do usuário em texto legível pra injeção no prompt."""
     if not contas:
         return "CONTAS DO USUÁRIO: (nenhuma conta cadastrada — sempre retorne conta_id: null)"
 
@@ -99,9 +91,26 @@ def _montar_contexto_contas(contas):
     return "\n".join(linhas)
 
 
-def _montar_prompt(contas):
-    """Monta o prompt final juntando o prompt base + contexto de contas."""
-    return f"{_PROMPT_BASE}\n\n{_montar_contexto_contas(contas)}\n"
+def _montar_contexto_categorias(categorias):
+    """Formata a lista de categorias permitidas pra injeção no prompt."""
+    if not categorias:
+        return ""
+    linhas = [
+        "\nCATEGORIAS PERMITIDAS (use EXATAMENTE um destes nomes, sem inventar):",
+    ]
+    for cat in categorias:
+        linhas.append(f'  - "{cat}"')
+    linhas.append('Se nenhuma se encaixa, use "A Classificar".')
+    return "\n".join(linhas)
+
+
+def _montar_prompt(contas, categorias=None):
+    """Monta o prompt final juntando o prompt base + contexto de contas + categorias."""
+    partes = [_PROMPT_BASE, "", _montar_contexto_contas(contas)]
+    if categorias:
+        partes.append(_montar_contexto_categorias(categorias))
+    partes.append("")
+    return "\n".join(partes)
 
 
 def _resposta_fallback(motivo: str) -> dict:
@@ -116,16 +125,17 @@ def _resposta_fallback(motivo: str) -> dict:
     }
 
 
-def processar_texto_ia(texto, contas=None):
+def processar_texto_ia(texto, contas=None, categorias=None):
     """Interpreta uma frase do usuário e retorna um dict estruturado.
 
     Args:
         texto: a frase do usuário.
-        contas: lista de contas do usuário pra ancorar a escolha (ver
-                _montar_contexto_contas). Se None, a IA retorna conta_id null.
+        contas: lista de contas do usuário pra ancorar a escolha.
+        categorias: lista de nomes de categorias permitidas. Se fornecida,
+                    a IA usa EXATAMENTE esses nomes em vez de inventar.
     """
     try:
-        prompt_completo = _montar_prompt(contas)
+        prompt_completo = _montar_prompt(contas, categorias)
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=f"{prompt_completo}\n\nFrase do usuário: '{texto}'"
@@ -137,15 +147,16 @@ def processar_texto_ia(texto, contas=None):
         return _resposta_fallback("falha ao interpretar texto")
 
 
-def processar_audio_ia(caminho_audio, contas=None):
+def processar_audio_ia(caminho_audio, contas=None, categorias=None):
     """Interpreta um áudio do usuário e retorna um dict estruturado.
 
     Args:
         caminho_audio: path local do arquivo de áudio.
         contas: lista de contas do usuário pra ancorar a escolha.
+        categorias: lista de nomes de categorias permitidas.
     """
     try:
-        prompt_completo = _montar_prompt(contas)
+        prompt_completo = _montar_prompt(contas, categorias)
 
         # 1. Upload do arquivo para o servidor do Google
         # Detecta mime type pelo nome do arquivo

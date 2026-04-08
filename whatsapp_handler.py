@@ -415,10 +415,25 @@ def _gerar_resumo(db: Session, usuario_id: int) -> str:
     return "\n".join(linhas)
 
 
+def _categorias_para_ia(db: Session) -> list:
+    """Monta lista de categorias (base + personalizadas) pra injetar no prompt."""
+    from main import LISTA_CATEGORIAS_BASE
+    cats = list(LISTA_CATEGORIAS_BASE)
+    try:
+        personalizadas = db.query(models.Categoria).all()
+        for c in personalizadas:
+            if c.nome not in cats:
+                cats.append(c.nome)
+    except Exception:
+        pass
+    return sorted(cats)
+
+
 def _processar_lancamento(texto: str, db: Session, usuario_id: int) -> str:
     """Processa um lançamento por TEXTO via IA."""
     contas = _contas_do_usuario(db, usuario_id)
-    dados_ia = ia_engine.processar_texto_ia(texto, contas=contas)
+    cats = _categorias_para_ia(db)
+    dados_ia = ia_engine.processar_texto_ia(texto, contas=contas, categorias=cats)
     return _processar_lancamento_from_ia(dados_ia, db, usuario_id)
 
 
@@ -609,7 +624,8 @@ async def webhook_evolution(request: Request, db: Session = Depends(database.get
         if audio_path:
             try:
                 contas = _contas_do_usuario(db, usuario.id)
-                dados_ia = ia_engine.processar_audio_ia(audio_path, contas=contas)
+                cats = _categorias_para_ia(db)
+                dados_ia = ia_engine.processar_audio_ia(audio_path, contas=contas, categorias=cats)
                 # Reutiliza a mesma lógica de lançamento
                 if dados_ia.get("natureza") == "config_limite":
                     resposta = _processar_lancamento_from_ia(dados_ia, db, usuario.id)

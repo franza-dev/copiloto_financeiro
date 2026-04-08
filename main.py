@@ -646,6 +646,26 @@ def deletar_categoria(categoria_id: int, db: Session = Depends(database.get_db))
 
 # --- 3. O CORAÇÃO: INTELIGÊNCIA ARTIFICIAL (TEXTO E ÁUDIO) ---
 
+LISTA_CATEGORIAS_BASE = [
+    "Vendas / Receitas", "Prestação de Serviços", "Transferência Interna",
+    "Alimentação", "Transporte e Combustível", "Impostos (DAS, etc)",
+    "Ferramentas e Software", "Tarifas Bancárias", "Pró-Labore / Salário",
+    "Equipamentos", "A Classificar"
+]
+
+def _categorias_para_ia(db: Session) -> List[str]:
+    """Monta lista completa de categorias (base + personalizadas) pra injetar no prompt."""
+    cats = list(LISTA_CATEGORIAS_BASE)
+    try:
+        personalizadas = db.query(models.Categoria).all()
+        for c in personalizadas:
+            if c.nome not in cats:
+                cats.append(c.nome)
+    except Exception:
+        pass
+    return sorted(cats)
+
+
 def _contas_do_usuario_para_ia(db: Session, usuario_id: int) -> List[dict]:
     """Formata as contas do usuário como lista de dicts pra injetar no prompt da IA.
     Inclui modalidade pra IA conseguir distinguir conta corrente de cartão."""
@@ -740,7 +760,8 @@ def processar_e_salvar_ia(dados_ia, db, usuario_id):
 @app.post("/transacoes/ia")
 def criar_transacao_texto(texto: str, usuario_id: int, db: Session = Depends(database.get_db)):
     contas_contexto = _contas_do_usuario_para_ia(db, usuario_id)
-    dados_ia = ia_engine.processar_texto_ia(texto, contas=contas_contexto)
+    cats = _categorias_para_ia(db)
+    dados_ia = ia_engine.processar_texto_ia(texto, contas=contas_contexto, categorias=cats)
     return processar_e_salvar_ia(dados_ia, db, usuario_id)
 
 @app.post("/transacoes/ia/audio")
@@ -750,7 +771,8 @@ async def criar_transacao_audio(usuario_id: int, file: UploadFile = File(...), d
         shutil.copyfileobj(file.file, buffer)
 
     contas_contexto = _contas_do_usuario_para_ia(db, usuario_id)
-    dados_ia = ia_engine.processar_audio_ia(temp_path, contas=contas_contexto)
+    cats = _categorias_para_ia(db)
+    dados_ia = ia_engine.processar_audio_ia(temp_path, contas=contas_contexto, categorias=cats)
     if os.path.exists(temp_path): os.remove(temp_path)
 
     return processar_e_salvar_ia(dados_ia, db, usuario_id=usuario_id)
