@@ -685,19 +685,16 @@ aba_dashboard, aba_extrato, aba_contas, aba_categorias, aba_perfil = st.tabs(["�
 # ==========================================
 with aba_dashboard:
     st.markdown("### 📝 O que saiu hoje?")
-    texto_input = st.text_input("Conta pro Guido", placeholder="Ex: gastei 45 no Uber pra reunião do negócio", label_visibility="collapsed")
-    audio_input = st.audio_input("🎙️ Ou grava um áudio")
 
-    if st.button("Manda pro Guido", use_container_width=True):
-        if texto_input:
-            with st.spinner("O Guido tá ouvindo..."):
-                res = requests.post(f"{API_URL}/transacoes/ia", params={"texto": texto_input, "usuario_id": USUARIO_ID})
-                if res.status_code == 200:
-                    st.success("Anotado. Dá uma olhada na revisão aí embaixo.")
-                    st.rerun()
-                else:
-                    st.error("Deu ruim aqui. Tenta de novo?")
-        elif audio_input:
+    # Form com Enter pra submeter + clear_on_submit pra limpar o campo
+    with st.form("form_lancamento_ia", clear_on_submit=True):
+        texto_input = st.text_input("Conta pro Guido", placeholder="Ex: gastei 45 no Uber pra reunião do negócio", label_visibility="collapsed")
+        enviou = st.form_submit_button("Manda pro Guido", use_container_width=True, type="primary")
+
+    # Áudio fica fora do form (st.audio_input não funciona dentro de form)
+    audio_input = st.audio_input("🎙️ Ou grava um áudio")
+    if audio_input:
+        if st.button("Enviar áudio pro Guido", use_container_width=True):
             with st.spinner("O Guido tá ouvindo seu áudio..."):
                 res_audio = requests.post(
                     f"{API_URL}/transacoes/ia/audio",
@@ -709,8 +706,18 @@ with aba_dashboard:
                     st.rerun()
                 else:
                     st.error("Deu ruim com o áudio. Tenta de novo?")
+
+    if enviou:
+        if texto_input:
+            with st.spinner("O Guido tá ouvindo..."):
+                res = requests.post(f"{API_URL}/transacoes/ia", params={"texto": texto_input, "usuario_id": USUARIO_ID})
+                if res.status_code == 200:
+                    st.success("Anotado. Dá uma olhada na revisão aí embaixo.")
+                    st.rerun()
+                else:
+                    st.error("Deu ruim aqui. Tenta de novo?")
         else:
-            st.warning("Escreve ou grava algo primeiro.")
+            st.warning("Escreve algo primeiro.")
     st.divider()
 
     st.markdown("### 📂 Subir extrato do banco (CSV)")
