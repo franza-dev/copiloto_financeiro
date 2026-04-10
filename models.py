@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Text, DateTime
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -78,4 +78,27 @@ class LimiteCategoria(Base):
     id = Column(Integer, primary_key=True, index=True)
     categoria = Column(String, unique=True, index=True)
     valor_teto = Column(Float)
-    usuario_id = Column(Integer)    
+    usuario_id = Column(Integer)
+
+
+class BlogPost(Base):
+    """Posts publicados no blog do site (chamaoguido.com/blog).
+
+    Alimentado pelo projeto Marketing_guido via POST /api/blog/publicar com
+    header X-API-Key. O agente envia o markdown bruto + frontmatter; o backend
+    converte pra HTML e armazena os dois (md original como fonte da verdade,
+    html como cache pra renderização rápida).
+    """
+    __tablename__ = "blog_posts"
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String, unique=True, index=True, nullable=False)
+    title = Column(String, nullable=False)
+    meta_description = Column(String, nullable=True)
+    categoria = Column(String, nullable=True)
+    keywords = Column(String, nullable=True)  # CSV
+    autor = Column(String, nullable=True, default="Equipe Guido")
+    conteudo_md = Column(Text, nullable=False)
+    conteudo_html = Column(Text, nullable=False)
+    frontmatter_json = Column(Text, nullable=True)  # JSON serializado do YAML original
+    publicado_em = Column(DateTime, nullable=False)
+    status = Column(String, default="publicado")  # publicado | rascunho

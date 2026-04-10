@@ -138,6 +138,10 @@ app.include_router(whatsapp_router)
 from asaas_handler import router as asaas_router
 app.include_router(asaas_router)
 
+# Registra rotas do Blog (publicação automática via Marketing_guido)
+from blog_handler import router as blog_router
+app.include_router(blog_router)
+
 # --- SCHEMAS (Envelopes Pydantic) ---
 class ConfirmacaoGasto(BaseModel):
     data: str

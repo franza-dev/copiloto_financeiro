@@ -318,181 +318,30 @@ footer { background: var(--surface); border-top: 1px solid var(--border); paddin
   </div>
 </section>
 
-<!-- ARTIGOS EM DESTAQUE -->
-<section class="featured">
+<!-- ARTIGOS EM DESTAQUE — preenchido via JS a partir da API -->
+<section class="featured" id="featured-section" style="display:none;">
   <div class="container">
     <div class="section-label">Em destaque</div>
-    <h2>Os mais lidos<br><em>esse mês.</em></h2>
-    <div class="featured-grid">
-
-      <!-- Card principal -->
-      <a href="#" class="card-featured">
-        <div class="card-featured-thumb" style="background: linear-gradient(135deg, #0F2A1F 0%, #1D9E75 100%);">
-          <div style="font-size:3.5rem;">🏠🏢</div>
-        </div>
-        <div class="card-featured-body">
-          <div class="card-tag" style="background:var(--green-lt);color:var(--green-dk);">
-            Finanças básicas
-          </div>
-          <div class="card-title">Como separar o dinheiro da casa do dinheiro do negócio sem abrir outra conta</div>
-          <p class="card-desc">O guia mais direto para o MEI organizar as finanças com a conta que já tem. Entenda a lógica, veja exemplos reais e aprenda a usar o Guido para fazer isso automaticamente.</p>
-          <div class="card-meta">
-            <span class="read-time">⏱ 8 min de leitura</span>
-            <span class="card-meta-dot"></span>
-            <span>Guia completo</span>
-            <span class="card-meta-dot"></span>
-            <span style="color:var(--green);">Mais popular</span>
-          </div>
-        </div>
-      </a>
-
-      <!-- Coluna lateral -->
-      <div class="featured-side">
-        <a href="#" class="card-side">
-          <div class="card-tag" style="background:var(--amber-lt);color:#92400E;">
-            Limite MEI
-          </div>
-          <div class="card-title-sm">Limite do MEI em 2026: o que mudou com os R$ 130 mil</div>
-          <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:0.4rem;">Com o novo limite aprovado no Congresso, o que muda na prática? Como se preparar?</p>
-          <div class="card-meta" style="margin-top:0.85rem;">
-            <span class="read-time">⏱ 6 min</span>
-          </div>
-        </a>
-
-        <a href="#" class="card-side">
-          <div class="card-tag" style="background:var(--blue-lt);color:var(--blue);">
-            Pró-labore
-          </div>
-          <div class="card-title-sm">O que é pró-labore e por que o MEI precisa de um salário fixo todo mês</div>
-          <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:0.4rem;">Sem salário definido, o dinheiro some. Entenda como definir o seu e monitorar pelo Guido.</p>
-          <div class="card-meta" style="margin-top:0.85rem;">
-            <span class="read-time">⏱ 5 min</span>
-          </div>
-        </a>
-
-        <a href="#" class="card-side">
-          <div class="card-tag" style="background:var(--red-lt);color:var(--red);">
-            Cartão de crédito
-          </div>
-          <div class="card-title-sm">Por que a fatura do cartão destrói o controle financeiro do MEI</div>
-          <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:0.4rem;">O erro mais comum com cartão — e como o Guido resolve sem duplicar gastos.</p>
-          <div class="card-meta" style="margin-top:0.85rem;">
-            <span class="read-time">⏱ 5 min</span>
-          </div>
-        </a>
-      </div>
-    </div>
+    <h2>Os mais recentes<br><em>aqui no blog.</em></h2>
+    <div class="featured-grid" id="featured-grid"></div>
   </div>
 </section>
 
-<!-- TODOS OS ARTIGOS -->
-<section class="articles">
+<!-- TODOS OS ARTIGOS — preenchido via JS a partir da API -->
+<section class="articles" id="articles-section">
   <div class="container">
     <div class="articles-header">
       <div>
         <div class="section-label">Todos os artigos</div>
         <h2>Continue<br><em>aprendendo.</em></h2>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a href="#" class="topic-pill active">Todos</a>
-        <a href="#" class="topic-pill">Mais recentes</a>
-        <a href="#" class="topic-pill">Mais lidos</a>
-      </div>
     </div>
 
-    <div class="articles-grid">
-
-      <a href="#" class="card-article">
-        <div class="card-article-thumb" style="background:linear-gradient(135deg,#0F2A1F,#1D9E75);">🏠🏢</div>
-        <div class="card-article-body">
-          <div class="card-tag" style="background:var(--green-lt);color:var(--green-dk);">Finanças básicas</div>
-          <div class="card-title-sm">Como separar o dinheiro da casa do negócio sem abrir outra conta</div>
-          <p class="card-desc" style="margin-top:0.4rem;">O guia mais direto para o MEI organizar as finanças com a conta que já tem.</p>
-          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 8 min</span></div>
-        </div>
-      </a>
-
-      <a href="#" class="card-article">
-        <div class="card-article-thumb" style="background:linear-gradient(135deg,#1A0F00,#F5A623);">📊</div>
-        <div class="card-article-body">
-          <div class="card-tag" style="background:var(--amber-lt);color:#92400E;">Limite MEI</div>
-          <div class="card-title-sm">Limite do MEI em 2026: R$ 130 mil e como não estourar o seu</div>
-          <p class="card-desc" style="margin-top:0.4rem;">Com o novo limite aprovado, o que muda e como se preparar antes de virar obrigação.</p>
-          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 6 min</span></div>
-        </div>
-      </a>
-
-      <a href="#" class="card-article">
-        <div class="card-article-thumb" style="background:linear-gradient(135deg,#001430,#185FA5);">💰</div>
-        <div class="card-article-body">
-          <div class="card-tag" style="background:var(--blue-lt);color:var(--blue);">Pró-labore</div>
-          <div class="card-title-sm">O que é pró-labore e por que o MEI precisa de um salário fixo</div>
-          <p class="card-desc" style="margin-top:0.4rem;">Sem pró-labore definido, o dinheiro some sem explicação. Veja como calcular o seu.</p>
-          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 5 min</span></div>
-        </div>
-      </a>
-
-      <a href="#" class="card-article">
-        <div class="card-article-thumb" style="background:linear-gradient(135deg,#1A0505,#E24B4A);">💳</div>
-        <div class="card-article-body">
-          <div class="card-tag" style="background:var(--red-lt);color:var(--red);">Cartão de crédito</div>
-          <div class="card-title-sm">Por que a fatura do cartão destrói o controle financeiro do MEI</div>
-          <p class="card-desc" style="margin-top:0.4rem;">O erro mais comum com cartão — e como lançar certo sem duplicar nos relatórios.</p>
-          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 5 min</span></div>
-        </div>
-      </a>
-
-      <a href="#" class="card-article">
-        <div class="card-article-thumb" style="background:linear-gradient(135deg,#0D1117,#475569);">📄</div>
-        <div class="card-article-body">
-          <div class="card-tag" style="background:var(--surface2);color:var(--text2);">Extrato bancário</div>
-          <div class="card-title-sm">Como importar o extrato do banco e organizar o mês em 10 minutos</div>
-          <p class="card-desc" style="margin-top:0.4rem;">Passo a passo para baixar o CSV de qualquer banco e processar no Guido.</p>
-          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 4 min</span></div>
-        </div>
-      </a>
-
-      <a href="#" class="card-article">
-        <div class="card-article-thumb" style="background:linear-gradient(135deg,#150F2A,#6B3FA0);">🎯</div>
-        <div class="card-article-body">
-          <div class="card-tag" style="background:var(--purple-lt);color:var(--purple);">Teto de gastos</div>
-          <div class="card-title-sm">Como definir um teto de gastos por categoria e parar de estourar o orçamento</div>
-          <p class="card-desc" style="margin-top:0.4rem;">Defina limites por voz no WhatsApp e deixe o Guido monitorar por você.</p>
-          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 4 min</span></div>
-        </div>
-      </a>
-
-      <a href="#" class="card-article">
-        <div class="card-article-thumb" style="background:linear-gradient(135deg,#0F1A0F,#2E7D32);">📋</div>
-        <div class="card-article-body">
-          <div class="card-tag" style="background:var(--green-lt);color:var(--green-dk);">Declaração</div>
-          <div class="card-title-sm">Declaração Anual do MEI 2026: passo a passo sem complicação</div>
-          <p class="card-desc" style="margin-top:0.4rem;">Como fazer a DASN-SIMEI do zero, sem contador, sem errar o prazo.</p>
-          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 7 min</span></div>
-        </div>
-      </a>
-
-      <a href="#" class="card-article">
-        <div class="card-article-thumb" style="background:linear-gradient(135deg,#1A1400,#B8860B);">📈</div>
-        <div class="card-article-body">
-          <div class="card-tag" style="background:var(--amber-lt);color:#92400E;">Crescimento</div>
-          <div class="card-title-sm">Quando deixar de ser MEI? Os sinais de que seu negócio cresceu demais</div>
-          <p class="card-desc" style="margin-top:0.4rem;">Faturamento, funcionários, atividades — quando e como migrar para ME.</p>
-          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 6 min</span></div>
-        </div>
-      </a>
-
-      <a href="#" class="card-article">
-        <div class="card-article-thumb" style="background:linear-gradient(135deg,#001A30,#0D47A1);">🧾</div>
-        <div class="card-article-body">
-          <div class="card-tag" style="background:var(--blue-lt);color:var(--blue);">DAS MEI</div>
-          <div class="card-title-sm">DAS MEI: o que é, quanto custa e como nunca mais esquecer de pagar</div>
-          <p class="card-desc" style="margin-top:0.4rem;">Guia completo sobre o DAS, quando pagar, o que acontece se atrasar.</p>
-          <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ 5 min</span></div>
-        </div>
-      </a>
-
+    <div id="articles-empty" style="display:none;text-align:center;padding:3rem 0;color:var(--text2);">
+      <p style="font-size:15px;">Em breve, novos guias por aqui. Enquanto isso, <a href="/planos" style="color:var(--green);">conheça o Guido</a>.</p>
     </div>
+
+    <div class="articles-grid" id="articles-grid"></div>
   </div>
 </section>
 
@@ -620,6 +469,136 @@ footer { background: var(--surface); border-top: 1px solid var(--border); paddin
     </div>
   </div>
 </footer>
+
+<script>
+// ─── Renderização dinâmica de posts a partir da API ─────────────
+// Os posts são publicados pelo Marketing_guido (Opensquad) via POST /api/blog/publicar
+// e listados aqui via GET /api/blog/posts.
+
+// Mapeamento de categoria → estilo (cor de tag + gradiente do thumb + emoji)
+const ESTILOS = {
+  'finanças básicas':    {tagBg:'var(--green-lt)',  tagFg:'var(--green-dk)', grad:'linear-gradient(135deg,#0F2A1F,#1D9E75)', emoji:'🏠🏢'},
+  'limite mei':          {tagBg:'var(--amber-lt)',  tagFg:'#92400E',         grad:'linear-gradient(135deg,#1A0F00,#F5A623)', emoji:'📊'},
+  'pró-labore':          {tagBg:'var(--blue-lt)',   tagFg:'var(--blue)',     grad:'linear-gradient(135deg,#001430,#185FA5)', emoji:'💰'},
+  'cartão de crédito':   {tagBg:'var(--red-lt)',    tagFg:'var(--red)',      grad:'linear-gradient(135deg,#1A0505,#E24B4A)', emoji:'💳'},
+  'extrato bancário':    {tagBg:'var(--surface2)',  tagFg:'var(--text2)',    grad:'linear-gradient(135deg,#0D1117,#475569)', emoji:'📄'},
+  'teto de gastos':      {tagBg:'var(--purple-lt)', tagFg:'var(--purple)',   grad:'linear-gradient(135deg,#150F2A,#6B3FA0)', emoji:'🎯'},
+  'declaração':          {tagBg:'var(--green-lt)',  tagFg:'var(--green-dk)', grad:'linear-gradient(135deg,#0F1A0F,#2E7D32)', emoji:'📋'},
+  'crescimento':         {tagBg:'var(--amber-lt)',  tagFg:'#92400E',         grad:'linear-gradient(135deg,#1A1400,#B8860B)', emoji:'📈'},
+  'das mei':             {tagBg:'var(--blue-lt)',   tagFg:'var(--blue)',     grad:'linear-gradient(135deg,#001A30,#0D47A1)', emoji:'🧾'},
+};
+const ESTILO_PADRAO = {tagBg:'var(--green-lt)', tagFg:'var(--green-dk)', grad:'linear-gradient(135deg,#0F2A1F,#1D9E75)', emoji:'📝'};
+
+function estiloDe(categoria) {
+  if (!categoria) return ESTILO_PADRAO;
+  return ESTILOS[categoria.toLowerCase().trim()] || ESTILO_PADRAO;
+}
+
+function tempoLeitura(meta) {
+  // Estimativa simples: ~5min por post se nada disponível
+  return '5 min';
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function cardDestaque(post) {
+  const e = estiloDe(post.categoria);
+  return `
+    <a href="/blog/${encodeURIComponent(post.slug)}" class="card-featured">
+      <div class="card-featured-thumb" style="background:${e.grad};">
+        <div style="font-size:3.5rem;">${e.emoji}</div>
+      </div>
+      <div class="card-featured-body">
+        ${post.categoria ? `<div class="card-tag" style="background:${e.tagBg};color:${e.tagFg};">${escapeHtml(post.categoria)}</div>` : ''}
+        <div class="card-title">${escapeHtml(post.title)}</div>
+        <p class="card-desc">${escapeHtml(post.meta_description || '')}</p>
+        <div class="card-meta">
+          <span class="read-time">⏱ ${tempoLeitura(post)} de leitura</span>
+          <span class="card-meta-dot"></span>
+          <span style="color:var(--green);">Mais recente</span>
+        </div>
+      </div>
+    </a>
+  `;
+}
+
+function cardLateral(post) {
+  const e = estiloDe(post.categoria);
+  return `
+    <a href="/blog/${encodeURIComponent(post.slug)}" class="card-side">
+      ${post.categoria ? `<div class="card-tag" style="background:${e.tagBg};color:${e.tagFg};">${escapeHtml(post.categoria)}</div>` : ''}
+      <div class="card-title-sm">${escapeHtml(post.title)}</div>
+      <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:0.4rem;">${escapeHtml(post.meta_description || '')}</p>
+      <div class="card-meta" style="margin-top:0.85rem;">
+        <span class="read-time">⏱ ${tempoLeitura(post)}</span>
+      </div>
+    </a>
+  `;
+}
+
+function cardArtigo(post) {
+  const e = estiloDe(post.categoria);
+  return `
+    <a href="/blog/${encodeURIComponent(post.slug)}" class="card-article">
+      <div class="card-article-thumb" style="background:${e.grad};">${e.emoji}</div>
+      <div class="card-article-body">
+        ${post.categoria ? `<div class="card-tag" style="background:${e.tagBg};color:${e.tagFg};">${escapeHtml(post.categoria)}</div>` : ''}
+        <div class="card-title-sm">${escapeHtml(post.title)}</div>
+        <p class="card-desc" style="margin-top:0.4rem;">${escapeHtml(post.meta_description || '')}</p>
+        <div class="card-meta" style="margin-top:auto;padding-top:0.75rem;"><span class="read-time">⏱ ${tempoLeitura(post)}</span></div>
+      </div>
+    </a>
+  `;
+}
+
+async function carregarPosts() {
+  const featuredSection = document.getElementById('featured-section');
+  const featuredGrid = document.getElementById('featured-grid');
+  const articlesGrid = document.getElementById('articles-grid');
+  const articlesEmpty = document.getElementById('articles-empty');
+
+  try {
+    const resp = await fetch('/api/blog/posts?limit=50');
+    if (!resp.ok) throw new Error('falha ao carregar posts');
+    const posts = await resp.json();
+
+    if (!posts.length) {
+      articlesEmpty.style.display = 'block';
+      return;
+    }
+
+    // Os 4 mais recentes vão pra "Em destaque": 1 grande + 3 laterais
+    if (posts.length >= 1) {
+      const principal = posts[0];
+      const laterais = posts.slice(1, 4);
+      featuredSection.style.display = 'block';
+      featuredGrid.innerHTML = `
+        ${cardDestaque(principal)}
+        <div class="featured-side">
+          ${laterais.map(cardLateral).join('')}
+        </div>
+      `;
+    }
+
+    // Todos os outros vão pro grid abaixo (a partir do 5º)
+    const restantes = posts.slice(4);
+    if (restantes.length) {
+      articlesGrid.innerHTML = restantes.map(cardArtigo).join('');
+    } else {
+      // Se só tinha 4 ou menos, esconde a seção do grid pra não ficar vazio
+      document.getElementById('articles-section').style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Erro ao carregar posts:', err);
+    articlesEmpty.style.display = 'block';
+  }
+}
+
+carregarPosts();
+</script>
 
 </body>
 </html>

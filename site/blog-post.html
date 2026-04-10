@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">Carregando… — Blog Guido</title>
+<meta name="description" id="page-description" content="Blog do Guido — finanças para MEIs sem linguagem de contador.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green:    #1D9E75;
+  --green-dk: #085041;
+  --green-lt: #E1F5EE;
+  --night:    #0D1117;
+  --surface:  #111827;
+  --surface2: #1E293B;
+  --border:   #1E293B;
+  --text:     #F1F5F9;
+  --text2:    #94A3B8;
+  --text3:    #475569;
+  --serif:    'Lora', Georgia, serif;
+  --sans:     'DM Sans', system-ui, sans-serif;
+  --r-md:     10px;
+  --r-lg:     16px;
+  --r-xl:     24px;
+}
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--night); color: var(--text); line-height: 1.7; overflow-x: hidden; }
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,17,23,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem; display: flex; align-items: center; height: 64px; gap: 2rem;
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.nav-logo-text { font-family: var(--serif); font-size: 22px; font-weight: 400; color: var(--text); letter-spacing: -0.5px; }
+.nav-logo-text span { color: var(--green); }
+.nav-links { display: flex; gap: 1.75rem; list-style: none; margin-left: auto; }
+.nav-links a { font-size: 14px; color: var(--text2); text-decoration: none; transition: color 0.15s; }
+.nav-links a:hover { color: var(--text); }
+.nav-links a.active { color: var(--text); font-weight: 500; }
+.nav-cta { background: var(--green) !important; color: #fff !important; padding: 8px 18px; border-radius: 8px; font-weight: 500 !important; white-space: nowrap; transition: background 0.15s !important; }
+.nav-cta:hover { background: var(--green-dk) !important; }
+
+/* CONTAINER */
+.container { max-width: 760px; margin: 0 auto; padding: 0 1.5rem; }
+.container-wide { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* HEADER do POST */
+.post-header {
+  padding: 3.5rem 0 2rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.breadcrumb { font-size: 13px; color: var(--text3); margin-bottom: 1.5rem; }
+.breadcrumb a { color: var(--text2); text-decoration: none; }
+.breadcrumb a:hover { color: var(--green); }
+.post-tag {
+  display: inline-block; font-size: 11px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  background: var(--green-lt); color: var(--green-dk);
+  padding: 4px 12px; border-radius: 20px; margin-bottom: 1rem;
+}
+.post-title {
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.2; color: var(--text); margin-bottom: 1rem;
+}
+.post-meta {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px; color: var(--text3); margin-top: 1rem;
+}
+.post-meta-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text3); }
+
+/* CORPO DO POST */
+.post-body {
+  padding: 3rem 0 4rem;
+  font-size: 17px; color: var(--text);
+}
+.post-body h1, .post-body h2, .post-body h3, .post-body h4 {
+  font-family: var(--serif); font-weight: 400; color: var(--text);
+  margin: 2.5rem 0 1rem; line-height: 1.3;
+}
+.post-body h2 { font-size: 1.7rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+.post-body h3 { font-size: 1.35rem; }
+.post-body h4 { font-size: 1.1rem; }
+.post-body p { margin-bottom: 1.25rem; line-height: 1.8; color: var(--text); }
+.post-body ul, .post-body ol { margin: 1rem 0 1.25rem 1.5rem; }
+.post-body li { margin-bottom: 0.5rem; line-height: 1.75; }
+.post-body a { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+.post-body a:hover { color: var(--green-dk); }
+.post-body strong { color: var(--text); font-weight: 500; }
+.post-body em { font-style: italic; color: var(--text); }
+.post-body blockquote {
+  border-left: 3px solid var(--green);
+  padding: 0.5rem 0 0.5rem 1.25rem;
+  margin: 1.5rem 0;
+  color: var(--text2); font-style: italic;
+}
+.post-body code {
+  background: var(--surface2); color: var(--green);
+  padding: 2px 6px; border-radius: 4px;
+  font-size: 0.9em; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+.post-body pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 1rem;
+  overflow-x: auto; margin: 1.5rem 0;
+}
+.post-body pre code { background: none; color: var(--text); padding: 0; }
+.post-body table {
+  width: 100%; border-collapse: collapse; margin: 1.5rem 0;
+  font-size: 15px;
+}
+.post-body th, .post-body td {
+  text-align: left; padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.post-body th { font-weight: 500; color: var(--text2); background: var(--surface); }
+.post-body img { max-width: 100%; height: auto; border-radius: var(--r-md); margin: 1.5rem 0; }
+.post-body hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+/* ESTADOS */
+.loading, .error {
+  text-align: center; padding: 5rem 2rem; color: var(--text2);
+}
+.loading h2, .error h2 {
+  font-family: var(--serif); font-weight: 400; color: var(--text);
+  margin-bottom: 1rem;
+}
+
+/* CTA FINAL */
+.post-cta {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 2.5rem;
+  margin: 3rem 0 1rem;
+  text-align: center;
+}
+.post-cta h3 {
+  font-family: var(--serif); font-size: 1.5rem; font-weight: 400;
+  color: var(--text); margin-bottom: 0.75rem;
+}
+.post-cta h3 em { font-style: italic; color: var(--green); }
+.post-cta p { color: var(--text2); font-size: 15px; margin-bottom: 1.5rem; }
+.btn-primary {
+  display: inline-block; background: var(--green); color: #fff;
+  padding: 14px 32px; border-radius: 10px; font-size: 15px; font-weight: 500;
+  text-decoration: none; transition: background 0.15s, transform 0.1s;
+}
+.btn-primary:hover { background: var(--green-dk); transform: translateY(-1px); }
+
+/* FOOTER */
+footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem 2rem; }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 2rem; margin-bottom: 2.5rem; }
+.footer-brand p { font-size: 13px; color: var(--text3); margin-top: 0.75rem; max-width: 220px; line-height: 1.6; }
+.footer-col-title { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 1rem; }
+.footer-col a { display: block; font-size: 13px; color: var(--text2); text-decoration: none; line-height: 2; transition: color 0.15s; }
+.footer-col a:hover { color: var(--text); }
+.footer-bottom { border-top: 1px solid var(--border); padding-top: 1.5rem; font-size: 12px; color: var(--text3); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+
+@media (max-width: 768px) {
+  nav { padding: 0 1rem; }
+  .nav-links { display: none; }
+  .footer-top { grid-template-columns: 1fr 1fr; }
+  .post-header { padding: 2rem 0 1.5rem; }
+  .post-body { padding: 2rem 0 3rem; font-size: 16px; }
+  .post-cta { padding: 1.75rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <svg width="32" height="22" viewBox="0 0 155 52" xmlns="http://www.w3.org/2000/svg">
+      <line x1="18" y1="17" x2="2" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+      <rect x="18" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+      <line x1="58" y1="22" x2="97" y2="22" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+      <rect x="97" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+      <line x1="137" y1="17" x2="153" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+    <span class="nav-logo-text"><span>G</span>uido</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/como-funciona">Como funciona</a></li>
+    <li><a href="/funcionalidades">Funcionalidades</a></li>
+    <li><a href="/planos">Planos</a></li>
+    <li><a href="/blog" class="active">Blog</a></li>
+    <li><a href="/faq">FAQ</a></li>
+    <li><a href="/planos" class="nav-cta">Assinar por R$&nbsp;19/mês</a></li>
+  </ul>
+</nav>
+
+<!-- ESTADO: carregando -->
+<div id="state-loading" class="loading">
+  <h2>Carregando…</h2>
+  <p>Buscando o post.</p>
+</div>
+
+<!-- ESTADO: erro / não encontrado -->
+<div id="state-error" class="error" style="display:none;">
+  <h2>Post não encontrado</h2>
+  <p>O artigo que você procura não existe ou foi removido. <a href="/blog" style="color:var(--green);">Voltar para o blog</a>.</p>
+</div>
+
+<!-- ESTADO: post carregado -->
+<article id="state-post" style="display:none;">
+  <header class="post-header">
+    <div class="container">
+      <div class="breadcrumb"><a href="/">Início</a> / <a href="/blog">Blog</a> / <span id="bc-title"></span></div>
+      <div id="post-tag" class="post-tag" style="display:none;"></div>
+      <h1 id="post-title" class="post-title"></h1>
+      <div class="post-meta">
+        <span id="post-autor"></span>
+        <span class="post-meta-dot"></span>
+        <span id="post-data"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="post-body">
+    <div class="container">
+      <div id="post-content"></div>
+
+      <div class="post-cta">
+        <h3>Cansou de planilha?<br><em>Chama o Guido.</em></h3>
+        <p>Lance gastos por WhatsApp, veja relatórios prontos e nunca mais estoure o limite do MEI. R$ 19/mês.</p>
+        <a href="/planos" class="btn-primary">Assinar por R$ 19/mês</a>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+          <svg width="28" height="19" viewBox="0 0 155 52" xmlns="http://www.w3.org/2000/svg">
+            <line x1="18" y1="17" x2="2" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+            <rect x="18" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+            <line x1="58" y1="22" x2="97" y2="22" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+            <rect x="97" y="8" width="40" height="28" rx="8" fill="none" stroke="#1D9E75" stroke-width="6"/>
+            <line x1="137" y1="17" x2="153" y2="5" stroke="#1D9E75" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+          <span style="font-family:var(--serif);font-size:18px;color:var(--text);"><span style="color:var(--green)">G</span>uido</span>
+        </a>
+        <p>Gestão financeira é para corporações. Para você, é só chamar o Guido.</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Produto</div>
+        <div class="footer-col">
+          <a href="/como-funciona">Como funciona</a>
+          <a href="/funcionalidades">Funcionalidades</a>
+          <a href="/planos">Planos — R$ 19/mês</a>
+          <a href="/faq">FAQ</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Conteúdo</div>
+        <div class="footer-col">
+          <a href="/blog">Blog</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Legal</div>
+        <div class="footer-col">
+          <a href="/termos">Termos de uso</a>
+          <a href="/privacidade">Privacidade</a>
+          <a href="/contato">Contato</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 guido · chamaoguido.com</span>
+      <span>Feito com carinho para os 13 milhões de MEIs do Brasil.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ─── Carrega o post pelo slug da URL ─────────────────────────────
+// O nginx faz rewrite de /blog/{slug} → /blog-post.html mantendo a URL original
+// no navegador. Aqui nós lemos o slug do path da URL e fazemos fetch da API.
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatarData(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
+  } catch(e) { return ''; }
+}
+
+function extrairSlug() {
+  // /blog/meu-post → "meu-post"
+  // ?slug=meu-post (fallback)
+  const path = window.location.pathname;
+  const m = path.match(/^\/blog\/([^\/]+)\/?$/);
+  if (m) return decodeURIComponent(m[1]);
+  const params = new URLSearchParams(window.location.search);
+  return params.get('slug');
+}
+
+function mostrarErro() {
+  document.getElementById('state-loading').style.display = 'none';
+  document.getElementById('state-post').style.display = 'none';
+  document.getElementById('state-error').style.display = 'block';
+}
+
+async function carregarPost() {
+  const slug = extrairSlug();
+  if (!slug) { mostrarErro(); return; }
+
+  try {
+    const resp = await fetch(`/api/blog/posts/${encodeURIComponent(slug)}`);
+    if (!resp.ok) { mostrarErro(); return; }
+    const post = await resp.json();
+
+    // Title + meta
+    document.getElementById('page-title').textContent = `${post.title} — Blog Guido`;
+    document.getElementById('page-description').setAttribute('content', post.meta_description || post.title);
+
+    // Header
+    document.getElementById('bc-title').textContent = post.title;
+    document.getElementById('post-title').textContent = post.title;
+    document.getElementById('post-autor').textContent = post.autor || 'Equipe Guido';
+    document.getElementById('post-data').textContent = formatarData(post.publicado_em);
+    if (post.categoria) {
+      const tag = document.getElementById('post-tag');
+      tag.textContent = post.categoria;
+      tag.style.display = 'inline-block';
+    }
+
+    // Conteúdo (HTML já renderizado pelo backend)
+    document.getElementById('post-content').innerHTML = post.conteudo_html;
+
+    // Mostra
+    document.getElementById('state-loading').style.display = 'none';
+    document.getElementById('state-post').style.display = 'block';
+  } catch (err) {
+    console.error('Erro ao carregar post:', err);
+    mostrarErro();
+  }
+}
+
+carregarPost();
+</script>
+
+</body>
+</html>
