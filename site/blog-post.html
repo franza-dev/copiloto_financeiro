@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">Carregando… — Blog Guido</title>
 <meta name="description" id="page-description" content="Blog do Guido — finanças para MEIs sem linguagem de contador.">
+<meta name="robots" content="index, follow">
+<meta name="language" content="pt-BR">
+<link rel="canonical" id="page-canonical" href="https://chamaoguido.com/blog">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Guido">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:url" id="og-url" content="https://chamaoguido.com/blog">
+<meta property="og:title" id="og-title" content="Blog Guido">
+<meta property="og:description" id="og-description" content="Finanças para MEI sem jargão de contador.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" id="tw-title" content="Blog Guido">
+<meta name="twitter:description" id="tw-description" content="Finanças para MEI sem jargão de contador.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -333,6 +345,15 @@ async function carregarPost() {
     // Title + meta
     document.getElementById('page-title').textContent = `${post.title} — Blog Guido`;
     document.getElementById('page-description').setAttribute('content', post.meta_description || post.title);
+
+    // SEO: canonical + Open Graph + Twitter Card dinâmicos
+    const canonicalUrl = `https://chamaoguido.com/blog/${post.slug}`;
+    document.getElementById('page-canonical').setAttribute('href', canonicalUrl);
+    document.getElementById('og-url').setAttribute('content', canonicalUrl);
+    document.getElementById('og-title').setAttribute('content', post.title);
+    document.getElementById('og-description').setAttribute('content', post.meta_description || post.title);
+    document.getElementById('tw-title').setAttribute('content', post.title);
+    document.getElementById('tw-description').setAttribute('content', post.meta_description || post.title);
 
     // Header
     document.getElementById('bc-title').textContent = post.title;
