@@ -1565,11 +1565,12 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                     dias_com_dados = [c for c in dias_col if (tabela[c] != 0).any()]
                     tabela_exibir = tabela[dias_com_dados + ['Total']]
 
-                    # Formata valores
+                    # Formata valores (padrão brasileiro: ponto pra milhar, vírgula pra centavos)
                     def _fmt_valor(v):
                         if v == 0 or pd.isna(v):
                             return ""
-                        return f"R$ {v:,.2f}"
+                        s = f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                        return f"R$ {s}"
 
                     def _cor_valor(v):
                         if isinstance(v, str) or v == 0 or pd.isna(v):
@@ -1592,16 +1593,25 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                         .apply(_destaca_linha, axis=1)
                     )
 
-                    st.dataframe(styled, use_container_width=True, height=min(800, (len(tabela) + 1) * 38))
+                    # Configura largura das colunas pra não cortar valores
+                    _col_config_fc = {}
+                    for col in tabela_exibir.columns:
+                        if col == 'Total':
+                            _col_config_fc[col] = st.column_config.Column(width=120)
+                        else:
+                            _col_config_fc[col] = st.column_config.Column(width=110)
+
+                    st.dataframe(styled, use_container_width=True, height=min(800, (len(tabela) + 1) * 38), column_config=_col_config_fc)
 
                     # KPIs resumo
                     col_k1, col_k2, col_k3 = st.columns(3)
                     total_rec = float(sub_rec['Total'].iloc[0])
                     total_desp = float(sub_desp['Total'].iloc[0])
                     saldo_final = total_rec + total_desp
-                    col_k1.metric("Receitas", f"R$ {total_rec:,.2f}")
-                    col_k2.metric("Despesas", f"R$ {abs(total_desp):,.2f}")
-                    col_k3.metric("Saldo", f"R$ {saldo_final:,.2f}", delta=f"{'positivo' if saldo_final >= 0 else 'negativo'}")
+                    def _br(v): return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    col_k1.metric("Receitas", f"R$ {_br(total_rec)}")
+                    col_k2.metric("Despesas", f"R$ {_br(abs(total_desp))}")
+                    col_k3.metric("Saldo", f"R$ {_br(saldo_final)}", delta=f"{'positivo' if saldo_final >= 0 else 'negativo'}")
 
                     # Download
                     st.download_button(
