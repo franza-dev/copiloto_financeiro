@@ -1253,12 +1253,24 @@ if _aba_selecionada == "📊 Dashboards":
                                     name=origem, orientation='h', marker_color=cor,
                                     hovertemplate='%{y}<br>R$ %{x:,.2f}<extra>' + origem + '</extra>',
                                 ))
-                        # Linhas de teto
+                        # Marcadores de teto — só na linha da categoria correspondente
+                        _teto_cats = []
+                        _teto_vals = []
                         for cat, teto in tetos_dash.items():
                             if cat in gastos_cat.index:
-                                fig_barras.add_vline(x=teto, line_dash='dot', line_color='#F5A623',
-                                                     annotation_text=f'Teto: R$ {teto:,.0f}',
-                                                     annotation_font_color='#F5A623')
+                                _teto_cats.append(cat)
+                                _teto_vals.append(teto)
+                        if _teto_cats:
+                            fig_barras.add_trace(go.Scatter(
+                                y=_teto_cats, x=_teto_vals,
+                                mode='markers+text',
+                                marker=dict(symbol='line-ns-open', size=18, color='#F5A623', line=dict(width=3, color='#F5A623')),
+                                text=[f' R$ {v:,.0f}' for v in _teto_vals],
+                                textposition='middle right',
+                                textfont=dict(color='#F5A623', size=11),
+                                name='Teto',
+                                hovertemplate='%{y}<br>Teto: R$ %{x:,.2f}<extra></extra>',
+                            ))
                         fig_barras.update_layout(
                             barmode='stack',
                             title=dict(text='Despesas por categoria', font=dict(color=_P_TEXT)),
@@ -1373,7 +1385,7 @@ if _aba_selecionada == "📊 Dashboards":
                     ))
                     faltam_mei = max(0, limite_mei - faturamento_mei)
                     fig_gauge.update_layout(
-                        paper_bgcolor='#111827', font=dict(color=_P_TEXT2),
+                        paper_bgcolor=_P_BG, font=dict(color=_P_TEXT2),
                         height=280, margin=dict(l=20, r=20, t=60, b=20),
                         annotations=[dict(
                             text=f"R$ {faturamento_mei:,.0f} de R$ {limite_mei:,.0f}<br>"
