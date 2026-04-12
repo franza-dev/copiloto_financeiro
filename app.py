@@ -1579,12 +1579,30 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                             return "color: #1D9E75; font-weight: 500;"
                         return "color: #E24B4A; font-weight: 500;"
 
-                    _LINHAS_DESTAQUE = ('TOTAL RECEITAS', 'TOTAL DESPESAS', 'SALDO DO DIA', 'SALDO ACUMULADO')
+                    # Cores específicas por tipo de linha de destaque
+                    if _TEMA == "light":
+                        _COR_RECEITA_BG = "#E1F5EE"   # verde claro
+                        _COR_DESPESA_BG = "#FCEBEB"   # vermelho claro
+                        _COR_SALDO_BG = "#FEF3DC"     # amarelo claro
+                        _COR_SALDO_ACUM_BG = "#1D9E75"  # verde primário
+                        _COR_SALDO_ACUM_FG = "#FFFFFF"
+                    else:
+                        _COR_RECEITA_BG = "#0F3A2B"   # verde escuro profundo
+                        _COR_DESPESA_BG = "#3A1515"   # vermelho escuro profundo
+                        _COR_SALDO_BG = "#3A2F0E"     # amarelo escuro profundo
+                        _COR_SALDO_ACUM_BG = "#085041"  # verde profundo
+                        _COR_SALDO_ACUM_FG = "#F7F5F0"
+
+                    _DESTAQUES = {
+                        'TOTAL RECEITAS': f"background-color: {_COR_RECEITA_BG}; font-weight: 700;",
+                        'TOTAL DESPESAS': f"background-color: {_COR_DESPESA_BG}; font-weight: 700;",
+                        'SALDO DO DIA': f"background-color: {_COR_SALDO_BG}; font-weight: 700;",
+                        'SALDO ACUMULADO': f"background-color: {_COR_SALDO_ACUM_BG}; color: {_COR_SALDO_ACUM_FG} !important; font-weight: 700;",
+                    }
 
                     def _destaca_linha(row):
-                        if row.name in _LINHAS_DESTAQUE:
-                            return [f"background-color: {_P_SURF}; font-weight: 700;"] * len(row)
-                        return [""] * len(row)
+                        estilo = _DESTAQUES.get(row.name, "")
+                        return [estilo] * len(row)
 
                     # Monta dicionário de tooltips: (linha_categoria, coluna_dia) → texto
                     _tooltips = {}
@@ -1608,11 +1626,15 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                     for (cat, col), text in _tooltips.items():
                         tooltips_df.at[cat, col] = text
 
+                    def _destaca_index(v):
+                        return _DESTAQUES.get(v, "")
+
                     styled = (
                         tabela_exibir.style
                         .format(_fmt_valor)
                         .map(_cor_valor)
                         .apply(_destaca_linha, axis=1)
+                        .map_index(_destaca_index, axis=0)
                         .set_tooltips(
                             tooltips_df,
                             props=(
