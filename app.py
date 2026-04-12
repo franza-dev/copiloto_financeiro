@@ -800,9 +800,16 @@ if _aba_selecionada == "🌱 Painel":
 
                     # Detecta a linha de cabeçalho
                     header_idx = 0
+                    # Palavras-chave pra detectar colunas (PT + EN, cobre Nubank, Itaú, Bradesco, Inter, C6)
+                    _KW_DESC = ('descri', 'hist', 'title', 'titulo', 'lançamento', 'lancamento')
+                    _KW_VAL = ('valor', 'amount', 'quantia', 'value')
+                    _KW_DATA = ('data', 'date', 'vencimento', 'dt ')
+
                     for i in range(min(15, len(df_extrato))):
                         linha_texto = [_safe_str(v) for v in df_extrato.iloc[i]]
-                        if any('valor' in c for c in linha_texto) and any('descri' in c or 'hist' in c for c in linha_texto):
+                        tem_val = any(any(kw in c for kw in _KW_VAL) for c in linha_texto)
+                        tem_desc = any(any(kw in c for kw in _KW_DESC) for c in linha_texto)
+                        if tem_val and tem_desc:
                             header_idx = i
                             break
 
@@ -810,9 +817,9 @@ if _aba_selecionada == "🌱 Painel":
                     df_extrato.columns = [_safe_str(v) for v in df_extrato.iloc[header_idx]]
                     df_extrato = df_extrato.iloc[header_idx+1:].reset_index(drop=True)
 
-                    col_desc = next((c for c in df_extrato.columns if 'descri' in c or 'historico' in c), None)
-                    col_val  = next((c for c in df_extrato.columns if 'valor' in c), None)
-                    col_data = next((c for c in df_extrato.columns if 'data' in c or 'vencimento' in c or 'date' in c), None)
+                    col_desc = next((c for c in df_extrato.columns if any(kw in c for kw in _KW_DESC)), None)
+                    col_val  = next((c for c in df_extrato.columns if any(kw in c for kw in _KW_VAL)), None)
+                    col_data = next((c for c in df_extrato.columns if any(kw in c for kw in _KW_DATA)), None)
                     if col_desc and col_val:
                         transacoes_para_api = []
                         for _, row in df_extrato.iterrows():
