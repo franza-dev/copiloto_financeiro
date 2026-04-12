@@ -1586,22 +1586,62 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                             return [f"background-color: {_P_SURF}; font-weight: 700;"] * len(row)
                         return [""] * len(row)
 
+                    # Monta dicionário de tooltips: (linha_categoria, coluna_dia) → texto
+                    _tooltips = {}
+                    for _, r in df_fc.iterrows():
+                        if pd.isna(r.get('dia')):
+                            continue
+                        dia = int(r['dia'])
+                        col_nome = f"{dia:02d}"
+                        if col_nome not in tabela_exibir.columns:
+                            continue
+                        prefix = "  (+) " if r['valor'] > 0 else "  (-) "
+                        cat_key = prefix + str(r['categoria'])
+                        if cat_key not in tabela_exibir.index:
+                            continue
+                        entry = f"{r['descricao']}: {_fmt_valor(abs(r['valor']))}"
+                        key = (cat_key, col_nome)
+                        _tooltips[key] = (_tooltips.get(key, "") + ("\n" if key in _tooltips else "") + entry)
+
+                    # DataFrame de tooltips com mesma shape da tabela
+                    tooltips_df = pd.DataFrame("", index=tabela_exibir.index, columns=tabela_exibir.columns)
+                    for (cat, col), text in _tooltips.items():
+                        tooltips_df.at[cat, col] = text
+
                     styled = (
                         tabela_exibir.style
                         .format(_fmt_valor)
                         .map(_cor_valor)
                         .apply(_destaca_linha, axis=1)
+                        .set_tooltips(
+                            tooltips_df,
+                            props=(
+                                f"visibility: hidden; position: absolute; "
+                                f"background-color: {_P_BG}; color: {_P_TEXT}; "
+                                f"padding: 10px 14px; border-radius: 8px; "
+                                f"border: 1px solid {_P_BORDER}; "
+                                f"box-shadow: 0 4px 12px rgba(0,0,0,0.25); "
+                                f"font-size: 12px; font-family: system-ui, sans-serif; "
+                                f"max-width: 360px; white-space: pre-line; "
+                                f"line-height: 1.5; z-index: 1000; font-weight: 400;"
+                            ),
+                        )
+                        .set_table_styles([
+                            {"selector": "", "props": f"border-collapse: separate; border-spacing: 0; width: 100%; font-family: system-ui, sans-serif; font-size: 13px;"},
+                            {"selector": "thead th", "props": f"background-color: {_P_SURF}; color: {_P_TEXT}; padding: 10px 12px; border-bottom: 2px solid {_P_BORDER}; text-align: right; font-weight: 600; position: sticky; top: 0;"},
+                            {"selector": "thead th.blank", "props": "text-align: left;"},
+                            {"selector": "tbody th", "props": f"text-align: left; padding: 8px 12px; border-bottom: 1px solid {_P_BORDER}; color: {_P_TEXT2}; white-space: nowrap; min-width: 220px;"},
+                            {"selector": "tbody td", "props": f"padding: 8px 12px; border-bottom: 1px solid {_P_BORDER}; text-align: right; min-width: 110px;"},
+                            {"selector": "tbody tr:hover td", "props": f"background-color: {_P_SURF};"},
+                        ])
                     )
 
-                    # Configura largura das colunas pra não cortar valores
-                    _col_config_fc = {}
-                    for col in tabela_exibir.columns:
-                        if col == 'Total':
-                            _col_config_fc[col] = st.column_config.Column(width=120)
-                        else:
-                            _col_config_fc[col] = st.column_config.Column(width=110)
-
-                    st.dataframe(styled, use_container_width=True, height=min(800, (len(tabela) + 1) * 38), column_config=_col_config_fc)
+                    # Renderiza como HTML (permite tooltips nativas do Styler)
+                    html_tabela = styled.to_html()
+                    st.markdown(
+                        f'<div style="overflow-x: auto; max-height: 700px; overflow-y: auto;">{html_tabela}</div>',
+                        unsafe_allow_html=True,
+                    )
 
                     # KPIs resumo
                     col_k1, col_k2, col_k3 = st.columns(3)
