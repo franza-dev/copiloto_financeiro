@@ -1573,7 +1573,7 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                         return "color: #E24B4A; font-weight: 500;"
 
                     # Estiliza
-                    styled = tabela_exibir.style.format(_fmt_valor).applymap(_cor_valor)
+                    styled = tabela_exibir.style.format(_fmt_valor).map(_cor_valor)
 
                     # Destaca linhas de totais e saldo
                     def _destaca_linha(row):
