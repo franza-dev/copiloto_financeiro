@@ -677,13 +677,17 @@ LISTA_BASE = [
     "Equipamentos", "A Classificar"
 ]
 
-# --- ABAS ---
-aba_dashboard, aba_graficos, aba_extrato, aba_contas, aba_categorias, aba_perfil = st.tabs(["🌱 Painel", "📊 Dashboards", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas", "👤 Minha Conta"])
+# --- NAVEGAÇÃO POR ABAS ---
+# Usa st.radio em vez de st.tabs porque o radio persiste a seleção no
+# session_state entre reruns — o st.tabs reseta pra primeira aba sempre
+# que um st.rerun() dispara (bug clássico do Streamlit).
+_ABAS = ["🌱 Painel", "📊 Dashboards", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas", "👤 Minha Conta"]
+_aba_selecionada = st.radio("Navegação", _ABAS, horizontal=True, key="aba_ativa", label_visibility="collapsed")
 
 # ==========================================
 # ABA 1: PAINEL
 # ==========================================
-with aba_dashboard:
+if _aba_selecionada == "🌱 Painel":
     st.markdown("### 📝 O que saiu hoje?")
 
     # Form com Enter pra submeter + clear_on_submit pra limpar o campo
@@ -1018,7 +1022,7 @@ with aba_dashboard:
 # ==========================================
 # ABA: DASHBOARDS
 # ==========================================
-with aba_graficos:
+if _aba_selecionada == "📊 Dashboards":
     st.markdown("### 📊 Dashboards")
 
     # --- Controles globais ---
@@ -1383,116 +1387,113 @@ with aba_graficos:
 # ==========================================
 # ABA: EXTRATO
 # ==========================================
-with aba_extrato:
-    @st.fragment
-    def _tab_extrato():
-        st.markdown("### 🧾 Tudo que já passou pelo Guido")
-        try:
-            req_historico = requests.get(f"{API_URL}/transacoes/historico", params={"usuario_id": USUARIO_ID, **PARAMS_PERIODO})
-            if req_historico.status_code == 200:
-                historico = req_historico.json()
-                if historico:
-                    df_historico = pd.DataFrame(historico)
-                    c_filtro1, _ = st.columns(2)
-                    filtro_label = c_filtro1.selectbox("Mostrar", ["Tudo", "🏠 Casa", "🏢 Negócio"])
-                    mapa_filtro = {"🏠 Casa": "PF", "🏢 Negócio": "PJ"}
-                    if filtro_label in mapa_filtro:
-                        df_historico = df_historico[df_historico['tipo'] == mapa_filtro[filtro_label]]
+if _aba_selecionada == "🧾 Histórico":
+    st.markdown("### 🧾 Tudo que já passou pelo Guido")
+    try:
+        req_historico = requests.get(f"{API_URL}/transacoes/historico", params={"usuario_id": USUARIO_ID, **PARAMS_PERIODO})
+        if req_historico.status_code == 200:
+            historico = req_historico.json()
+            if historico:
+                df_historico = pd.DataFrame(historico)
+                c_filtro1, _ = st.columns(2)
+                filtro_label = c_filtro1.selectbox("Mostrar", ["Tudo", "🏠 Casa", "🏢 Negócio"])
+                mapa_filtro = {"🏠 Casa": "PF", "🏢 Negócio": "PJ"}
+                if filtro_label in mapa_filtro:
+                    df_historico = df_historico[df_historico['tipo'] == mapa_filtro[filtro_label]]
 
-                    # ── Tabela editável com excluir/editar inline ──
-                    colunas_exibir = ['id', 'data', 'descricao', 'valor', 'categoria', 'tipo', 'conta_id']
-                    colunas_disponiveis = [col for col in colunas_exibir if col in df_historico.columns]
+                # ── Tabela editável com excluir/editar inline ──
+                colunas_exibir = ['id', 'data', 'descricao', 'valor', 'categoria', 'tipo', 'conta_id']
+                colunas_disponiveis = [col for col in colunas_exibir if col in df_historico.columns]
 
-                    csv_data = df_historico[colunas_disponiveis].to_csv(index=False).encode('utf-8')
+                csv_data = df_historico[colunas_disponiveis].to_csv(index=False).encode('utf-8')
 
-                    df_edit = df_historico[colunas_disponiveis].copy()
-                    _tipo_display = {"PF": "Casa", "PJ": "Negócio"}
-                    _tipo_reverse = {"Casa": "PF", "Negócio": "PJ"}
-                    df_edit["tipo"] = df_edit["tipo"].map(_tipo_display).fillna(df_edit["tipo"])
-                    df_edit["conta"] = df_edit["conta_id"].map(id_para_nome).fillna("—")
-                    df_edit.drop(columns=["conta_id"], inplace=True)
-                    df_edit.insert(0, "🗑️", False)
+                df_edit = df_historico[colunas_disponiveis].copy()
+                _tipo_display = {"PF": "Casa", "PJ": "Negócio"}
+                _tipo_reverse = {"Casa": "PF", "Negócio": "PJ"}
+                df_edit["tipo"] = df_edit["tipo"].map(_tipo_display).fillna(df_edit["tipo"])
+                df_edit["conta"] = df_edit["conta_id"].map(id_para_nome).fillna("—")
+                df_edit.drop(columns=["conta_id"], inplace=True)
+                df_edit.insert(0, "🗑️", False)
 
-                    _todas_cats = sorted(set(LISTA_BASE) | set(df_edit["categoria"].dropna().unique()))
-                    _original = df_edit.copy()
+                _todas_cats = sorted(set(LISTA_BASE) | set(df_edit["categoria"].dropna().unique()))
+                _original = df_edit.copy()
 
-                    edited = st.data_editor(
-                        df_edit,
-                        use_container_width=True,
-                        hide_index=True,
-                        disabled=["id"],
-                        column_config={
-                            "🗑️": st.column_config.CheckboxColumn("🗑️", default=False, width="small"),
-                            "id": st.column_config.NumberColumn("ID", width="small"),
-                            "data": st.column_config.TextColumn("Data"),
-                            "descricao": st.column_config.TextColumn("Descrição", width="medium"),
-                            "valor": st.column_config.NumberColumn("Valor", format="R$ %.2f"),
-                            "categoria": st.column_config.SelectboxColumn("Categoria", options=_todas_cats, width="medium"),
-                            "tipo": st.column_config.SelectboxColumn("Tipo", options=["Casa", "Negócio"], width="small"),
-                            "conta": st.column_config.SelectboxColumn("Conta", options=nomes_contas if nomes_contas else ["—"], width="medium"),
-                        },
-                        key="editor_historico",
+                edited = st.data_editor(
+                    df_edit,
+                    use_container_width=True,
+                    hide_index=True,
+                    disabled=["id"],
+                    column_config={
+                        "🗑️": st.column_config.CheckboxColumn("🗑️", default=False, width="small"),
+                        "id": st.column_config.NumberColumn("ID", width="small"),
+                        "data": st.column_config.TextColumn("Data"),
+                        "descricao": st.column_config.TextColumn("Descrição", width="medium"),
+                        "valor": st.column_config.NumberColumn("Valor", format="R$ %.2f"),
+                        "categoria": st.column_config.SelectboxColumn("Categoria", options=_todas_cats, width="medium"),
+                        "tipo": st.column_config.SelectboxColumn("Tipo", options=["Casa", "Negócio"], width="small"),
+                        "conta": st.column_config.SelectboxColumn("Conta", options=nomes_contas if nomes_contas else ["—"], width="medium"),
+                    },
+                    key="editor_historico",
+                )
+
+                col_salvar, col_excluir, col_csv = st.columns(3)
+
+                with col_salvar:
+                    if st.button("💾 Salvar alterações", type="primary"):
+                        alterados = 0
+                        for idx in edited.index:
+                            if edited.at[idx, "🗑️"]:
+                                continue
+                            mudou = False
+                            for col in ["data", "descricao", "valor", "categoria", "tipo", "conta"]:
+                                if str(edited.at[idx, col]) != str(_original.at[idx, col]):
+                                    mudou = True
+                                    break
+                            if mudou:
+                                payload_ed = {
+                                    "data": str(edited.at[idx, "data"]),
+                                    "descricao": str(edited.at[idx, "descricao"]),
+                                    "valor": float(edited.at[idx, "valor"]),
+                                    "categoria": str(edited.at[idx, "categoria"]),
+                                    "tipo": _tipo_reverse.get(str(edited.at[idx, "tipo"]), "PF"),
+                                    "conta_id": opcoes_contas.get(str(edited.at[idx, "conta"]), None),
+                                }
+                                res_ed = requests.put(f"{API_URL}/transacoes/{int(edited.at[idx, 'id'])}", json=payload_ed)
+                                if res_ed.status_code == 200:
+                                    alterados += 1
+                        if alterados > 0:
+                            st.success(f"{alterados} lançamento(s) atualizado(s).")
+                            st.rerun()
+                        else:
+                            st.info("Nenhuma alteração detectada.")
+
+                with col_excluir:
+                    selecionados = edited[edited["🗑️"] == True]
+                    if not selecionados.empty:
+                        if st.button(f"🗑️ Excluir {len(selecionados)} lançamento(s)"):
+                            for _, row in selecionados.iterrows():
+                                requests.delete(f"{API_URL}/transacoes/{int(row['id'])}")
+                            st.success(f"{len(selecionados)} lançamento(s) excluído(s).")
+                            st.rerun()
+
+                with col_csv:
+                    st.download_button(
+                        label="📥 Baixar CSV",
+                        data=csv_data,
+                        file_name="guido_extrato.csv",
+                        mime="text/csv",
                     )
-
-                    col_salvar, col_excluir, col_csv = st.columns(3)
-
-                    with col_salvar:
-                        if st.button("💾 Salvar alterações", type="primary"):
-                            alterados = 0
-                            for idx in edited.index:
-                                if edited.at[idx, "🗑️"]:
-                                    continue
-                                mudou = False
-                                for col in ["data", "descricao", "valor", "categoria", "tipo", "conta"]:
-                                    if str(edited.at[idx, col]) != str(_original.at[idx, col]):
-                                        mudou = True
-                                        break
-                                if mudou:
-                                    payload_ed = {
-                                        "data": str(edited.at[idx, "data"]),
-                                        "descricao": str(edited.at[idx, "descricao"]),
-                                        "valor": float(edited.at[idx, "valor"]),
-                                        "categoria": str(edited.at[idx, "categoria"]),
-                                        "tipo": _tipo_reverse.get(str(edited.at[idx, "tipo"]), "PF"),
-                                        "conta_id": opcoes_contas.get(str(edited.at[idx, "conta"]), None),
-                                    }
-                                    res_ed = requests.put(f"{API_URL}/transacoes/{int(edited.at[idx, 'id'])}", json=payload_ed)
-                                    if res_ed.status_code == 200:
-                                        alterados += 1
-                            if alterados > 0:
-                                st.success(f"{alterados} lançamento(s) atualizado(s).")
-                                st.rerun()
-                            else:
-                                st.info("Nenhuma alteração detectada.")
-
-                    with col_excluir:
-                        selecionados = edited[edited["🗑️"] == True]
-                        if not selecionados.empty:
-                            if st.button(f"🗑️ Excluir {len(selecionados)} lançamento(s)"):
-                                for _, row in selecionados.iterrows():
-                                    requests.delete(f"{API_URL}/transacoes/{int(row['id'])}")
-                                st.success(f"{len(selecionados)} lançamento(s) excluído(s).")
-                                st.rerun()
-
-                    with col_csv:
-                        st.download_button(
-                            label="📥 Baixar CSV",
-                            data=csv_data,
-                            file_name="guido_extrato.csv",
-                            mime="text/csv",
-                        )
-                else:
-                    st.info("Ainda não tem nada confirmado. Manda um gasto pro Guido!")
             else:
-                st.warning("Não consegui carregar o histórico.")
-        except:
-            st.error("A API tá offline?")
-    _tab_extrato()
+                st.info("Ainda não tem nada confirmado. Manda um gasto pro Guido!")
+        else:
+            st.warning("Não consegui carregar o histórico.")
+    except:
+        st.error("A API tá offline?")
 
 # ==========================================
 # ABA 3: MINHAS CONTAS
 # ==========================================
-with aba_contas:
+if _aba_selecionada == "🏦 Contas":
     st.markdown("### 🏦 Suas contas")
     st.caption("Onde você guarda o dinheiro — da casa e do negócio. Inclui cartões de crédito.")
 
@@ -1806,7 +1807,7 @@ with aba_contas:
 # ==========================================
 # ABA 4: CATEGORIAS E METAS
 # ==========================================
-with aba_categorias:
+if _aba_selecionada == "📂 Categorias & Metas":
     st.markdown("### 📂 Categorias & metas")
     st.caption("Organiza seus gastos e define quanto dá pra gastar em cada coisa.")
 
@@ -1955,7 +1956,7 @@ with aba_categorias:
 # ==========================================
 # ABA 5: MINHA CONTA
 # ==========================================
-with aba_perfil:
+if _aba_selecionada == "👤 Minha Conta":
     st.markdown("### 👤 Minha Conta")
 
     try:
