@@ -888,7 +888,7 @@ if _aba_selecionada == "🌱 Painel":
                             )
                         ],
                     )
-                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, theme=None)
                 else:
                     st.caption("Nada saiu ainda nesse período. Chama o Guido quando gastar algo.")
 
@@ -951,7 +951,7 @@ if _aba_selecionada == "🌱 Painel":
                                 tickfont=dict(family="Georgia, serif", size=13),
                             ),
                         )
-                        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+                        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False}, theme=None)
         except Exception:
             st.info("Ainda não tem dados pra mostrar. Manda um gasto pro Guido!")
 
@@ -1231,7 +1231,7 @@ if _aba_selecionada == "📊 Dashboards":
                         yaxis=dict(gridcolor=_P_SURF, showgrid=True, tickprefix='R$ '),
                         height=380, margin=dict(l=60, r=20, t=50, b=40),
                     )
-                    st.plotly_chart(fig_linha, use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig_linha, use_container_width=True, config={"displayModeBar": False}, theme=None)
 
                 # ── GRÁFICO 2+3: Barras por categoria + Donut ────
                 col_barras, col_donut = st.columns([2, 1])
@@ -1282,7 +1282,7 @@ if _aba_selecionada == "📊 Dashboards":
                             height=max(300, gastos_cat.nunique() * 40 + 80),
                             margin=dict(l=140, r=60, t=50, b=40),
                         )
-                        st.plotly_chart(fig_barras, use_container_width=True, config={"displayModeBar": False})
+                        st.plotly_chart(fig_barras, use_container_width=True, config={"displayModeBar": False}, theme=None)
 
                 with col_donut:
                     if total_desp > 0:
@@ -1302,7 +1302,7 @@ if _aba_selecionada == "📊 Dashboards":
                             legend=dict(bgcolor=_P_SURF),
                             height=300, margin=dict(l=20, r=20, t=40, b=20),
                         )
-                        st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
+                        st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False}, theme=None)
 
                 # ── GRÁFICO 4: Progresso de tetos ────────────────
                 if tetos_dash:
@@ -1361,7 +1361,7 @@ if _aba_selecionada == "📊 Dashboards":
                             font=dict(color=_P_TEXT2),
                             height=280, margin=dict(l=60, r=20, t=50, b=40),
                         )
-                        st.plotly_chart(fig_heat, use_container_width=True, config={"displayModeBar": False})
+                        st.plotly_chart(fig_heat, use_container_width=True, config={"displayModeBar": False}, theme=None)
                     else:
                         st.caption("Selecione um mês específico pra ver o heatmap de gastos por dia.")
 
@@ -1394,7 +1394,7 @@ if _aba_selecionada == "📊 Dashboards":
                             font=dict(color='#F1F5F9', size=12), align='center',
                         )],
                     )
-                    st.plotly_chart(fig_gauge, use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig_gauge, use_container_width=True, config={"displayModeBar": False}, theme=None)
 
                 # ── GRÁFICO 7: Comparativo mensal ────────────────
                 if not df_ant.empty and not df.empty:
@@ -1426,7 +1426,7 @@ if _aba_selecionada == "📊 Dashboards":
                         legend=dict(bgcolor=_P_SURF),
                         height=360, margin=dict(l=60, r=20, t=50, b=80),
                     )
-                    st.plotly_chart(fig_comp, use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig_comp, use_container_width=True, config={"displayModeBar": False}, theme=None)
 
                 # ── INSIGHTS ─────────────────────────────────────
                 st.divider()
