@@ -965,15 +965,21 @@ def importar_lote_csv(lote: LoteTransacoes, db: Session = Depends(database.get_d
     conta = db.query(models.ContaBancaria).filter(models.ContaBancaria.id == lote.conta_id).first()
     tipo_da_conta = conta.tipo if conta else "PF"
 
+    eh_cartao = conta and conta.modalidade == "cartao_credito"
+
     for t in lote.transacoes:
         categoria_sugerida = _sugerir_categoria(db, lote.usuario_id, t.descricao, conta)
         data_competencia = _normalizar_data_iso(t.data)
+
+        # Cartão de crédito (Nubank, etc): CSV usa positivo pra compras,
+        # mas no Guido despesa é valor < 0. Inverte o sinal.
+        valor_final = -t.valor if eh_cartao else t.valor
 
         nova_tx = models.Transacao(
             data=data_competencia,
             data_caixa=resolver_data_caixa(db, lote.conta_id, data_competencia),
             descricao=t.descricao,
-            valor=t.valor,
+            valor=valor_final,
             categoria=categoria_sugerida,
             tipo=tipo_da_conta,
             conta_id=lote.conta_id,
