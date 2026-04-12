@@ -49,6 +49,8 @@ def _enviar_whatsapp(telefone: str, texto: str):
         headers = {"apikey": EVOLUTION_API_KEY, "Content-Type": "application/json"}
         resp = http_requests.post(url, json=payload, headers=headers, timeout=10)
         print(f"[WhatsApp] Enviado pra {telefone}: {resp.status_code}")
+        if resp.status_code >= 400:
+            print(f"[WhatsApp] ERRO resposta: {resp.text[:500]}")
     except Exception as e:
         print(f"[WhatsApp] Erro ao enviar mensagem: {e}")
 
