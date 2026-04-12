@@ -22,8 +22,35 @@ cookie_manager = stx.CookieManager()
 # Paleta verde-noite, Georgia serif, system-ui sans
 # chamaoguido.com.br
 # ==========================================
-st.markdown("""
-    <style>
+# Tema: persiste no cookie, default escuro
+if "tema" not in st.session_state:
+    st.session_state.tema = cookie_manager.get("guido_tema") or "dark"
+
+_TEMA = st.session_state.tema
+
+if _TEMA == "light":
+    _CSS_VARS = """
+        :root {
+            --guido-green:         #1D9E75;
+            --guido-green-deep:    #085041;
+            --guido-green-mid:     #9FE1CB;
+            --guido-green-light:   #E1F5EE;
+            --guido-amber:         #F5A623;
+            --guido-amber-light:   #FEF3DC;
+            --guido-night:         #FFFFFF;
+            --guido-night-surface: #F1F3F5;
+            --guido-night-border:  #DEE2E6;
+            --guido-off-white:     #212529;
+            --guido-text-primary:  #212529;
+            --guido-text-secondary:#495057;
+            --guido-text-muted:    #868E96;
+            --guido-font-serif:    Georgia, 'Times New Roman', serif;
+            --guido-font-sans:     system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --guido-radius-md:     10px;
+            --guido-radius-lg:     16px;
+        }"""
+else:
+    _CSS_VARS = """
         :root {
             --guido-green:         #1D9E75;
             --guido-green-deep:    #085041;
@@ -42,7 +69,25 @@ st.markdown("""
             --guido-font-sans:     system-ui, -apple-system, 'Segoe UI', sans-serif;
             --guido-radius-md:     10px;
             --guido-radius-lg:     16px;
-        }
+        }"""
+
+# Cores pra gráficos Plotly (não aceita CSS variables)
+if _TEMA == "light":
+    _P_BG = "#FFFFFF"
+    _P_SURF = "#F1F3F5"
+    _P_BORDER = "#DEE2E6"
+    _P_TEXT = "#212529"
+    _P_TEXT2 = "#495057"
+else:
+    _P_BG = "#111827"
+    _P_SURF = "#1E293B"
+    _P_BORDER = "#334155"
+    _P_TEXT = "#F1F5F9"
+    _P_TEXT2 = "#94A3B8"
+
+st.markdown(f"""
+    <style>
+        {_CSS_VARS}
 
         html, body, [class*="css"], .stApp {
             font-family: var(--guido-font-sans) !important;
@@ -457,7 +502,7 @@ if "usuario_id" not in st.session_state:
         st.markdown(f"""
             <div style="text-align:center; margin-bottom: 2rem;">
                 <div style="display:inline-flex; margin-bottom: 0.75rem;">
-                    {logo_guido_svg(width=280, color_word="#F7F5F0")}
+                    {logo_guido_svg(width=280, color_word=_P_TEXT)}
                 </div>
                 <p style="color:#94A3B8; font-size:0.95rem; margin: 0.25rem 0 0 0; font-family: Georgia, serif; font-style: italic; line-height: 1.5;">
                     Seu braço direito pra separar<br>o dinheiro da casa do dinheiro do negócio.
@@ -787,7 +832,7 @@ if _aba_selecionada == "🌱 Painel":
                         hole=0.72,
                         marker=dict(
                             colors=["#1D9E75", "#9FE1CB"],
-                            line=dict(color="#111827", width=4),
+                            line=dict(color=_P_BG, width=4),
                         ),
                         textinfo="none",
                         hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
@@ -1154,13 +1199,13 @@ if _aba_selecionada == "📊 Dashboards":
                                            annotation_text=f'Média: R$ {media_desp:,.0f}', annotation_position='right')
 
                     fig_linha.update_layout(
-                        title=dict(text='Evolução mensal — Receitas vs Despesas', font=dict(color='#F1F5F9')),
-                        paper_bgcolor='#111827', plot_bgcolor='#1E293B',
-                        font=dict(color='#94A3B8'),
-                        legend=dict(bgcolor='#1E293B', bordercolor='#334155'),
+                        title=dict(text='Evolução mensal — Receitas vs Despesas', font=dict(color=_P_TEXT)),
+                        paper_bgcolor=_P_BG, plot_bgcolor=_P_SURF,
+                        font=dict(color=_P_TEXT2),
+                        legend=dict(bgcolor=_P_SURF, bordercolor=_P_BORDER),
                         hovermode='x unified',
-                        xaxis=dict(gridcolor='#1E293B', showgrid=True),
-                        yaxis=dict(gridcolor='#1E293B', showgrid=True, tickprefix='R$ '),
+                        xaxis=dict(gridcolor=_P_SURF, showgrid=True),
+                        yaxis=dict(gridcolor=_P_SURF, showgrid=True, tickprefix='R$ '),
                         height=380, margin=dict(l=60, r=20, t=50, b=40),
                     )
                     st.plotly_chart(fig_linha, use_container_width=True, config={"displayModeBar": False})
@@ -1193,12 +1238,12 @@ if _aba_selecionada == "📊 Dashboards":
                                                      annotation_font_color='#F5A623')
                         fig_barras.update_layout(
                             barmode='stack',
-                            title=dict(text='Despesas por categoria', font=dict(color='#F1F5F9')),
-                            paper_bgcolor='#111827', plot_bgcolor='#1E293B',
-                            font=dict(color='#94A3B8'),
-                            xaxis=dict(tickprefix='R$ ', gridcolor='#1E293B'),
-                            yaxis=dict(gridcolor='#1E293B'),
-                            legend=dict(bgcolor='#1E293B'),
+                            title=dict(text='Despesas por categoria', font=dict(color=_P_TEXT)),
+                            paper_bgcolor=_P_BG, plot_bgcolor=_P_SURF,
+                            font=dict(color=_P_TEXT2),
+                            xaxis=dict(tickprefix='R$ ', gridcolor=_P_SURF),
+                            yaxis=dict(gridcolor=_P_SURF),
+                            legend=dict(bgcolor=_P_SURF),
                             height=max(300, gastos_cat.nunique() * 40 + 80),
                             margin=dict(l=140, r=60, t=50, b=40),
                         )
@@ -1210,16 +1255,16 @@ if _aba_selecionada == "📊 Dashboards":
                             labels=['🏢 Negócio', '🏠 Casa'],
                             values=[desp_pj, desp_pf],
                             hole=0.65,
-                            marker=dict(colors=['#1D9E75', '#9FE1CB'], line=dict(color='#111827', width=3)),
+                            marker=dict(colors=['#1D9E75', '#9FE1CB'], line=dict(color=_P_BG, width=3)),
                             textinfo='label+percent',
                             hovertemplate='%{label}<br>R$ %{value:,.2f}<br>%{percent}<extra></extra>',
                         ))
                         fig_donut.update_layout(
                             annotations=[dict(text=f'R$ {total_desp:,.0f}', x=0.5, y=0.5,
-                                              font_size=16, font=dict(color='#F1F5F9'), showarrow=False)],
-                            paper_bgcolor='#111827', plot_bgcolor='#111827',
-                            font=dict(color='#94A3B8'), showlegend=True,
-                            legend=dict(bgcolor='#1E293B'),
+                                              font_size=16, font=dict(color=_P_TEXT), showarrow=False)],
+                            paper_bgcolor=_P_BG, plot_bgcolor=_P_BG,
+                            font=dict(color=_P_TEXT2), showlegend=True,
+                            legend=dict(bgcolor=_P_SURF),
                             height=300, margin=dict(l=20, r=20, t=40, b=20),
                         )
                         st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
@@ -1237,7 +1282,7 @@ if _aba_selecionada == "📊 Dashboards":
                         with tc1:
                             st.markdown(f"**{alerta}{cat}**")
                             st.markdown(
-                                f'<div style="background:#1E293B;border-radius:6px;height:12px;overflow:hidden;">'
+                                f'<div style="background:{_P_SURF};border-radius:6px;height:12px;overflow:hidden;">'
                                 f'<div style="background:{cor};width:{min(pct, 100)}%;height:100%;border-radius:6px;'
                                 f'transition:width 0.3s;"></div></div>',
                                 unsafe_allow_html=True,
@@ -1271,14 +1316,14 @@ if _aba_selecionada == "📊 Dashboards":
                         semanas = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5']
                         fig_heat = go.Figure(go.Heatmap(
                             z=matriz, x=dias_semana, y=semanas,
-                            colorscale=[[0, '#1E293B'], [0.3, '#085041'], [0.7, '#1D9E75'], [1, '#9FE1CB']],
+                            colorscale=[[0, _P_SURF], [0.3, '#085041'], [0.7, '#1D9E75'], [1, '#9FE1CB']],
                             hovertemplate='%{x} · %{y}<br>R$ %{z:,.2f}<extra></extra>',
                             showscale=True,
                         ))
                         fig_heat.update_layout(
-                            title=dict(text='Intensidade de gastos por dia', font=dict(color='#F1F5F9')),
-                            paper_bgcolor='#111827', plot_bgcolor='#1E293B',
-                            font=dict(color='#94A3B8'),
+                            title=dict(text='Intensidade de gastos por dia', font=dict(color=_P_TEXT)),
+                            paper_bgcolor=_P_BG, plot_bgcolor=_P_SURF,
+                            font=dict(color=_P_TEXT2),
                             height=280, margin=dict(l=60, r=20, t=50, b=40),
                         )
                         st.plotly_chart(fig_heat, use_container_width=True, config={"displayModeBar": False})
@@ -1305,7 +1350,7 @@ if _aba_selecionada == "📊 Dashboards":
                     ))
                     faltam_mei = max(0, limite_mei - faturamento_mei)
                     fig_gauge.update_layout(
-                        paper_bgcolor='#111827', font=dict(color='#94A3B8'),
+                        paper_bgcolor='#111827', font=dict(color=_P_TEXT2),
                         height=280, margin=dict(l=20, r=20, t=60, b=20),
                         annotations=[dict(
                             text=f"R$ {faturamento_mei:,.0f} de R$ {limite_mei:,.0f}<br>"
@@ -1338,12 +1383,12 @@ if _aba_selecionada == "📊 Dashboards":
                     ))
                     fig_comp.update_layout(
                         barmode='group',
-                        title=dict(text='Comparativo de despesas — período atual vs anterior', font=dict(color='#F1F5F9')),
-                        paper_bgcolor='#111827', plot_bgcolor='#1E293B',
-                        font=dict(color='#94A3B8'),
-                        xaxis=dict(gridcolor='#1E293B', tickangle=-30),
-                        yaxis=dict(tickprefix='R$ ', gridcolor='#1E293B'),
-                        legend=dict(bgcolor='#1E293B'),
+                        title=dict(text='Comparativo de despesas — período atual vs anterior', font=dict(color=_P_TEXT)),
+                        paper_bgcolor=_P_BG, plot_bgcolor=_P_SURF,
+                        font=dict(color=_P_TEXT2),
+                        xaxis=dict(gridcolor=_P_SURF, tickangle=-30),
+                        yaxis=dict(tickprefix='R$ ', gridcolor=_P_SURF),
+                        legend=dict(bgcolor=_P_SURF),
                         height=360, margin=dict(l=60, r=20, t=50, b=80),
                     )
                     st.plotly_chart(fig_comp, use_container_width=True, config={"displayModeBar": False})
@@ -1958,6 +2003,23 @@ if _aba_selecionada == "📂 Categorias & Metas":
 # ==========================================
 if _aba_selecionada == "👤 Minha Conta":
     st.markdown("### 👤 Minha Conta")
+
+    # --- Aparência ---
+    with st.container(border=True):
+        st.markdown("#### 🎨 Aparência")
+        tema_opcoes = {"Escuro": "dark", "Claro": "light"}
+        tema_atual_label = "Claro" if st.session_state.tema == "light" else "Escuro"
+        tema_escolhido = st.radio(
+            "Modo de visualização",
+            list(tema_opcoes.keys()),
+            index=list(tema_opcoes.keys()).index(tema_atual_label),
+            horizontal=True,
+            key="tema_radio",
+        )
+        if tema_opcoes[tema_escolhido] != st.session_state.tema:
+            st.session_state.tema = tema_opcoes[tema_escolhido]
+            cookie_manager.set("guido_tema", st.session_state.tema, key="set_tema")
+            st.rerun()
 
     try:
         req_perfil = requests.get(f"{API_URL}/auth/minha-conta", params={"usuario_id": USUARIO_ID})
