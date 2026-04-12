@@ -915,19 +915,58 @@ def _normalizar_data_iso(data_str: str) -> str:
             continue
     return data_str
 
+import re as _re
+
+def _sugerir_categoria(db, usuario_id: int, descricao: str, conta=None) -> str:
+    """Sugere categoria baseado no histórico confirmado do usuário.
+
+    Estratégia em 3 níveis:
+      1. Auto-detect: pagamento de fatura em cartão → Transferência Interna
+      2. Match exato (case-insensitive) da descrição
+      3. Match fuzzy: normaliza removendo sufixos numéricos e parcelas,
+         depois busca por LIKE (ex: "Mercado Extra-1849" → "mercado extra%")
+    """
+    desc_lower = descricao.strip().lower()
+
+    # Nível 1 — Pagamento de fatura em conta de cartão de crédito
+    if conta and conta.modalidade == "cartao_credito":
+        _TERMOS_PGTO = ('pagamento recebido', 'pagamento de fatura', 'pgto fatura',
+                        'pagto recebido', 'pagamento efetuado')
+        if any(t in desc_lower for t in _TERMOS_PGTO):
+            return "Transferência Interna"
+
+    # Nível 2 — Match exato (case-insensitive), filtrado por usuário
+    tx = db.query(models.Transacao).filter(
+        models.Transacao.usuario_id == usuario_id,
+        models.Transacao.confirmado == True,
+        func.lower(models.Transacao.descricao) == desc_lower,
+    ).order_by(models.Transacao.id.desc()).first()
+    if tx and tx.categoria != "A Classificar":
+        return tx.categoria
+
+    # Nível 3 — Match fuzzy: remove sufixos numéricos e parcelas
+    desc_norm = _re.sub(r'[-–]\s*\d+$', '', desc_lower).strip()
+    desc_norm = _re.sub(r'\s*[-–]\s*parcela\s+\d+/\d+$', '', desc_norm, flags=_re.IGNORECASE).strip()
+    if desc_norm and desc_norm != desc_lower:
+        tx = db.query(models.Transacao).filter(
+            models.Transacao.usuario_id == usuario_id,
+            models.Transacao.confirmado == True,
+            func.lower(models.Transacao.descricao).like(f"{desc_norm}%"),
+            models.Transacao.categoria != "A Classificar",
+        ).order_by(models.Transacao.id.desc()).first()
+        if tx:
+            return tx.categoria
+
+    return "A Classificar"
+
+
 @app.post("/transacoes/lote")
 def importar_lote_csv(lote: LoteTransacoes, db: Session = Depends(database.get_db)):
     conta = db.query(models.ContaBancaria).filter(models.ContaBancaria.id == lote.conta_id).first()
     tipo_da_conta = conta.tipo if conta else "PF"
 
     for t in lote.transacoes:
-        # Tenta lembrar a categoria de um gasto igual no passado
-        transacao_antiga = db.query(models.Transacao).filter(
-            models.Transacao.descricao == t.descricao,
-            models.Transacao.confirmado == True
-        ).order_by(models.Transacao.id.desc()).first()
-
-        categoria_sugerida = transacao_antiga.categoria if transacao_antiga else "A Classificar"
+        categoria_sugerida = _sugerir_categoria(db, lote.usuario_id, t.descricao, conta)
         data_competencia = _normalizar_data_iso(t.data)
 
         nova_tx = models.Transacao(
