@@ -240,6 +240,29 @@ st.markdown("""
             text-transform: none !important;
         }
 
+        /* Radio options — texto acompanha o tema */
+        [data-testid="stRadio"] p,
+        [data-testid="stRadio"] label span,
+        [role="radiogroup"] label,
+        [role="radiogroup"] label p,
+        [role="radiogroup"] label div {
+            color: var(--guido-text-primary) !important;
+        }
+
+        /* Texto geral — garante que todo p, span, div respeite o tema */
+        .stMarkdown, .stMarkdown p, .stMarkdown span,
+        .stText, [data-testid="stText"],
+        [data-testid="stMetricValue"],
+        [data-testid="stMetricLabel"] {
+            color: var(--guido-text-primary) !important;
+        }
+        [data-testid="stMetricDelta"] {
+            opacity: 0.85;
+        }
+        [data-testid="stCaptionContainer"] {
+            color: var(--guido-text-muted) !important;
+        }
+
         /* Containers — cards sóbrios */
         [data-testid="stVerticalBlockBorderWrapper"] {
             background-color: var(--guido-night-surface) !important;
@@ -504,10 +527,10 @@ if "usuario_id" not in st.session_state:
                 <div style="display:inline-flex; margin-bottom: 0.75rem;">
                     {logo_guido_svg(width=280, color_word=_P_TEXT)}
                 </div>
-                <p style="color:#94A3B8; font-size:0.95rem; margin: 0.25rem 0 0 0; font-family: Georgia, serif; font-style: italic; line-height: 1.5;">
+                <p style="color:var(--guido-text-secondary); font-size:0.95rem; margin: 0.25rem 0 0 0; font-family: Georgia, serif; font-style: italic; line-height: 1.5;">
                     Seu braço direito pra separar<br>o dinheiro da casa do dinheiro do negócio.
                 </p>
-                <p style="color:#64748B; font-size:0.78rem; margin: 0.75rem 0 0 0;">chamaoguido.com.br</p>
+                <p style="color:var(--guido-text-muted); font-size:0.78rem; margin: 0.75rem 0 0 0;">chamaoguido.com.br</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -635,7 +658,7 @@ st.markdown(f"""
 # --- SIDEBAR ---
 st.sidebar.markdown(
     f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;">{icone_oculos_svg(width=38)}'
-    f'<span style="font-family:Georgia,serif;font-size:1.5rem;color:#F7F5F0;letter-spacing:-0.5px;">guido</span></div>',
+    f'<span style="font-family:Georgia,serif;font-size:1.5rem;color:var(--guido-text-primary);letter-spacing:-0.5px;">guido</span></div>',
     unsafe_allow_html=True,
 )
 st.sidebar.caption(f"Logado como **{st.session_state.usuario_nome.split()[0]}**")
@@ -856,7 +879,7 @@ if _aba_selecionada == "🌱 Painel":
                         height=320,
                         annotations=[
                             dict(
-                                text=f"<span style='font-family:Georgia,serif;font-size:13px;color:#94A3B8'>saiu total</span><br>"
+                                text=f"<span style='font-family:Georgia,serif;font-size:13px;color:{_P_TEXT2}'>saiu total</span><br>"
                                      f"<span style='font-family:Georgia,serif;font-size:26px;color:#9FE1CB'>R$ {total_gasto:,.0f}</span>",
                                 x=0.5, y=0.5,
                                 font_size=13,
@@ -1354,7 +1377,7 @@ if _aba_selecionada == "📊 Dashboards":
                         height=280, margin=dict(l=20, r=20, t=60, b=20),
                         annotations=[dict(
                             text=f"R$ {faturamento_mei:,.0f} de R$ {limite_mei:,.0f}<br>"
-                                 f"<span style='color:#94A3B8'>Faltam R$ {faltam_mei:,.0f}</span>",
+                                 f"<span style='color:{_P_TEXT2}'>Faltam R$ {faltam_mei:,.0f}</span>",
                             x=0.5, y=-0.1, showarrow=False,
                             font=dict(color='#F1F5F9', size=12), align='center',
                         )],
