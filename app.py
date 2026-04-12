@@ -1594,10 +1594,10 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                         _COR_SALDO_ACUM_FG = "#F7F5F0"
 
                     _DESTAQUES = {
-                        'TOTAL RECEITAS': f"background-color: {_COR_RECEITA_BG}; font-weight: 700;",
-                        'TOTAL DESPESAS': f"background-color: {_COR_DESPESA_BG}; font-weight: 700;",
-                        'SALDO DO DIA': f"background-color: {_COR_SALDO_BG}; font-weight: 700;",
-                        'SALDO ACUMULADO': f"background-color: {_COR_SALDO_ACUM_BG}; color: {_COR_SALDO_ACUM_FG} !important; font-weight: 700;",
+                        'TOTAL RECEITAS': f"background-color: {_COR_RECEITA_BG} !important; font-weight: 700 !important;",
+                        'TOTAL DESPESAS': f"background-color: {_COR_DESPESA_BG} !important; font-weight: 700 !important;",
+                        'SALDO DO DIA': f"background-color: {_COR_SALDO_BG} !important; font-weight: 700 !important;",
+                        'SALDO ACUMULADO': f"background-color: {_COR_SALDO_ACUM_BG} !important; color: {_COR_SALDO_ACUM_FG} !important; font-weight: 700 !important;",
                     }
 
                     def _destaca_linha(row):
