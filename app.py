@@ -4,6 +4,36 @@ import requests
 import pandas as pd
 import plotly.graph_objects as go
 import extra_streamlit_components as stx
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# ──────────────────────────────────────────────────────────────
+# Retry automático em todas as chamadas HTTP
+# Evita o erro "A API tá offline?" em quedas transitórias.
+# Retenta 3x com backoff exponencial em: connection errors, 5xx
+# ──────────────────────────────────────────────────────────────
+_retry_cfg = Retry(
+    total=3,
+    backoff_factor=0.4,  # 0.4s, 0.8s, 1.6s
+    status_forcelist=[500, 502, 503, 504],
+    allowed_methods=frozenset(['GET', 'POST', 'PUT', 'DELETE']),
+    raise_on_status=False,
+)
+_retry_adapter = HTTPAdapter(max_retries=_retry_cfg)
+_http_session = requests.Session()
+_http_session.mount('http://', _retry_adapter)
+_http_session.mount('https://', _retry_adapter)
+
+def _wrap_http(method_name):
+    def _wrapped(url, **kw):
+        kw.setdefault('timeout', 15)
+        return getattr(_http_session, method_name)(url, **kw)
+    return _wrapped
+
+requests.get = _wrap_http('get')
+requests.post = _wrap_http('post')
+requests.put = _wrap_http('put')
+requests.delete = _wrap_http('delete')
 
 _FAVICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "guido_favicon.svg")
 st.set_page_config(
