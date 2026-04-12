@@ -81,6 +81,23 @@ class LimiteCategoria(Base):
     usuario_id = Column(Integer)
 
 
+class ListaEspera(Base):
+    """Lista de espera pro lançamento oficial do Guido (pré-lançamento).
+
+    Formulário público em chamaoguido.com/lista. Usado pra notificar
+    interessados quando o produto for oficialmente lançado, eventualmente
+    com um preço diferente.
+    """
+    __tablename__ = "lista_espera"
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    telefone = Column(String, nullable=True)
+    desafio = Column(Text, nullable=True)  # Principal desafio financeiro descrito
+    criado_em = Column(DateTime, nullable=False)
+    notificado = Column(Boolean, default=False)  # Flag pra marcar quem já recebeu aviso de lançamento
+
+
 class BlogPost(Base):
     """Posts publicados no blog do site (chamaoguido.com/blog).
 

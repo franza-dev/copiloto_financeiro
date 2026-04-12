@@ -142,6 +142,10 @@ app.include_router(asaas_router)
 from blog_handler import router as blog_router
 app.include_router(blog_router)
 
+# Registra rotas da Lista de Espera (landing page pré-lançamento)
+from lista_espera_handler import router as lista_router
+app.include_router(lista_router)
+
 # --- SCHEMAS (Envelopes Pydantic) ---
 class ConfirmacaoGasto(BaseModel):
     data: str

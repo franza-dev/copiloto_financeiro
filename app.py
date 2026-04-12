@@ -2522,3 +2522,56 @@ if _aba_selecionada == "👤 Minha Conta":
                         st.info("Nenhum usuário cadastrado.")
             except Exception:
                 st.caption("Erro ao carregar lista.")
+
+        # --- Lista de espera (pré-lançamento) ---
+        with st.container(border=True):
+            st.markdown("#### 📬 Lista de espera (pré-lançamento)")
+            st.caption("Inscrições via chamaoguido.com/lista")
+            try:
+                req_lista = requests.get(
+                    f"{API_URL}/lista/inscritos",
+                    params={"admin_id": USUARIO_ID},
+                )
+                if req_lista.status_code == 200:
+                    inscritos = req_lista.json()
+                    if inscritos:
+                        col_kpi1, col_kpi2 = st.columns(2)
+                        col_kpi1.metric("Total inscritos", len(inscritos))
+                        col_kpi2.metric("Pendentes de aviso", sum(1 for i in inscritos if not i.get("notificado")))
+
+                        # Tabela com todos os dados
+                        import pandas as _pd_lista
+                        df_lista = _pd_lista.DataFrame(inscritos)
+                        if "criado_em" in df_lista.columns:
+                            df_lista["criado_em"] = _pd_lista.to_datetime(df_lista["criado_em"], errors="coerce").dt.strftime("%d/%m/%Y %H:%M")
+                        df_lista = df_lista[["id", "criado_em", "nome", "email", "telefone", "desafio", "notificado"]]
+                        df_lista = df_lista.rename(columns={
+                            "criado_em": "Quando",
+                            "nome": "Nome",
+                            "email": "Email",
+                            "telefone": "WhatsApp",
+                            "desafio": "Desafio",
+                            "notificado": "Avisado?",
+                        })
+                        st.dataframe(
+                            df_lista, use_container_width=True, hide_index=True,
+                            column_config={
+                                "id": st.column_config.NumberColumn("ID", width="small"),
+                                "Desafio": st.column_config.TextColumn("Desafio", width="large"),
+                            },
+                        )
+
+                        # Download CSV
+                        csv_lista = df_lista.to_csv(index=False).encode("utf-8")
+                        st.download_button(
+                            label="📥 Baixar lista (.csv)",
+                            data=csv_lista,
+                            file_name="guido_lista_espera.csv",
+                            mime="text/csv",
+                        )
+                    else:
+                        st.info("Ninguém se inscreveu ainda.")
+                else:
+                    st.caption("Erro ao carregar lista de espera.")
+            except Exception:
+                st.caption("Erro ao carregar lista de espera.")
