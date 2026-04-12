@@ -109,6 +109,13 @@ async def webhook_asaas(request: Request, db: Session = Depends(database.get_db)
     if event not in ("PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"):
         return {"status": "ignored", "event": event}
 
+    # Filtra só pagamentos do Guido (R$ 19/mês).
+    # Outros produtos da conta Asaas (1k, 2k, 2.5k) são ignorados.
+    valor = payment.get("value", 0)
+    if valor != 19 and valor != 19.0:
+        print(f"[Asaas] Pagamento ignorado: valor R$ {valor} não é do Guido (R$ 19)")
+        return {"status": "ignored", "detail": f"valor {valor} não é Guido"}
+
     customer_id = payment.get("customer")
     if not customer_id:
         return {"status": "error", "detail": "sem customer_id"}
