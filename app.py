@@ -1630,12 +1630,17 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                         )
                         .set_table_styles([
                             {"selector": "", "props": f"border-collapse: separate; border-spacing: 0; width: 100%; font-family: system-ui, sans-serif; font-size: 13px;"},
+                            # Cabeçalho de datas (linha de cima) — fixo no topo
                             {"selector": "thead th", "props": f"background-color: {_P_SURF}; color: {_P_TEXT}; padding: 10px 12px; border-bottom: 2px solid {_P_BORDER}; text-align: right; font-weight: 600; position: sticky; top: 0; z-index: 2;"},
-                            {"selector": "thead th.blank", "props": "text-align: left;"},
-                            {"selector": "tbody th", "props": f"text-align: left; padding: 8px 12px; border-bottom: 1px solid {_P_BORDER}; color: {_P_TEXT2}; white-space: nowrap; min-width: 220px;"},
-                            {"selector": "tbody td", "props": f"padding: 8px 12px; border-bottom: 1px solid {_P_BORDER}; text-align: right; min-width: 110px; position: relative;"},
+                            # Célula canto superior esquerdo (blank) — fixa nos DOIS eixos
+                            {"selector": "thead th.blank", "props": f"text-align: left; position: sticky; left: 0; top: 0; z-index: 4; background-color: {_P_SURF};"},
+                            # Coluna de categorias (primeira coluna) — fixa na esquerda
+                            {"selector": "tbody th", "props": f"text-align: left; padding: 8px 12px; border-bottom: 1px solid {_P_BORDER}; border-right: 2px solid {_P_BORDER}; color: {_P_TEXT2}; white-space: nowrap; min-width: 220px; position: sticky; left: 0; z-index: 3; background-color: {_P_BG};"},
+                            # Células de dados
+                            {"selector": "tbody td", "props": f"padding: 8px 12px; border-bottom: 1px solid {_P_BORDER}; text-align: right; min-width: 110px; position: relative; background-color: {_P_BG};"},
                             {"selector": "tbody td:hover", "props": "overflow: visible; z-index: 10;"},
                             {"selector": "tbody tr:hover td", "props": f"background-color: {_P_SURF};"},
+                            {"selector": "tbody tr:hover th", "props": f"background-color: {_P_SURF};"},
                         ])
                     )
 
