@@ -1539,11 +1539,17 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                     saldo_acum_df = saldo_acum.to_frame().T
                     saldo_acum_df.index = ['SALDO ACUMULADO']
 
-                    # Monta tabela final
+                    # Prefixar pra evitar índices duplicados (mesma categoria em receitas e despesas)
+                    pivot_rec_prefixed = pivot_rec[colunas_final].copy()
+                    pivot_rec_prefixed.index = ["  (+) " + c for c in pivot_rec_prefixed.index]
+                    pivot_desp_show = (pivot_desp[colunas_final].abs() * -1).copy()
+                    pivot_desp_show.index = ["  (-) " + c for c in pivot_desp_show.index]
+
+                    # Monta tabela final com índices únicos
                     tabela = pd.concat([
-                        pivot_rec[colunas_final],
+                        pivot_rec_prefixed,
                         sub_rec,
-                        pivot_desp[colunas_final].abs() * -1,  # mantém negativo pra clareza
+                        pivot_desp_show,
                         sub_desp,
                         saldo_dia_df,
                         saldo_acum_df,
@@ -1572,17 +1578,19 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                             return "color: #1D9E75; font-weight: 500;"
                         return "color: #E24B4A; font-weight: 500;"
 
-                    # Estiliza
-                    styled = tabela_exibir.style.format(_fmt_valor).map(_cor_valor)
+                    _LINHAS_DESTAQUE = ('TOTAL RECEITAS', 'TOTAL DESPESAS', 'SALDO DO DIA', 'SALDO ACUMULADO')
 
-                    # Destaca linhas de totais e saldo
                     def _destaca_linha(row):
-                        nome = row.name
-                        if nome in ('TOTAL RECEITAS', 'TOTAL DESPESAS', 'SALDO DO DIA', 'SALDO ACUMULADO'):
+                        if row.name in _LINHAS_DESTAQUE:
                             return [f"background-color: {_P_SURF}; font-weight: 700;"] * len(row)
                         return [""] * len(row)
 
-                    styled = styled.apply(_destaca_linha, axis=1)
+                    styled = (
+                        tabela_exibir.style
+                        .format(_fmt_valor)
+                        .map(_cor_valor)
+                        .apply(_destaca_linha, axis=1)
+                    )
 
                     st.dataframe(styled, use_container_width=True, height=min(800, (len(tabela) + 1) * 38))
 
