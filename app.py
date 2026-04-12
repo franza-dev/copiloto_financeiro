@@ -76,8 +76,8 @@ if _TEMA == "light":
     _P_BG = "#FFFFFF"
     _P_SURF = "#F1F3F5"
     _P_BORDER = "#DEE2E6"
-    _P_TEXT = "#212529"
-    _P_TEXT2 = "#495057"
+    _P_TEXT = "#085041"   # verde escuro pra títulos/legendas
+    _P_TEXT2 = "#085041"  # verde escuro pra labels de eixos
 else:
     _P_BG = "#111827"
     _P_SURF = "#1E293B"
