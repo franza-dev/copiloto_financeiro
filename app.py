@@ -1617,21 +1617,24 @@ if _aba_selecionada == "💰 Fluxo de Caixa":
                             tooltips_df,
                             props=(
                                 f"visibility: hidden; position: absolute; "
+                                f"bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); "
                                 f"background-color: {_P_BG}; color: {_P_TEXT}; "
                                 f"padding: 10px 14px; border-radius: 8px; "
                                 f"border: 1px solid {_P_BORDER}; "
-                                f"box-shadow: 0 4px 12px rgba(0,0,0,0.25); "
+                                f"box-shadow: 0 4px 16px rgba(0,0,0,0.35); "
                                 f"font-size: 12px; font-family: system-ui, sans-serif; "
-                                f"max-width: 360px; white-space: pre-line; "
-                                f"line-height: 1.5; z-index: 1000; font-weight: 400;"
+                                f"width: max-content; max-width: 360px; white-space: pre-line; "
+                                f"line-height: 1.5; z-index: 9999; font-weight: 400; "
+                                f"pointer-events: none; text-align: left;"
                             ),
                         )
                         .set_table_styles([
                             {"selector": "", "props": f"border-collapse: separate; border-spacing: 0; width: 100%; font-family: system-ui, sans-serif; font-size: 13px;"},
-                            {"selector": "thead th", "props": f"background-color: {_P_SURF}; color: {_P_TEXT}; padding: 10px 12px; border-bottom: 2px solid {_P_BORDER}; text-align: right; font-weight: 600; position: sticky; top: 0;"},
+                            {"selector": "thead th", "props": f"background-color: {_P_SURF}; color: {_P_TEXT}; padding: 10px 12px; border-bottom: 2px solid {_P_BORDER}; text-align: right; font-weight: 600; position: sticky; top: 0; z-index: 2;"},
                             {"selector": "thead th.blank", "props": "text-align: left;"},
                             {"selector": "tbody th", "props": f"text-align: left; padding: 8px 12px; border-bottom: 1px solid {_P_BORDER}; color: {_P_TEXT2}; white-space: nowrap; min-width: 220px;"},
-                            {"selector": "tbody td", "props": f"padding: 8px 12px; border-bottom: 1px solid {_P_BORDER}; text-align: right; min-width: 110px;"},
+                            {"selector": "tbody td", "props": f"padding: 8px 12px; border-bottom: 1px solid {_P_BORDER}; text-align: right; min-width: 110px; position: relative;"},
+                            {"selector": "tbody td:hover", "props": "overflow: visible; z-index: 10;"},
                             {"selector": "tbody tr:hover td", "props": f"background-color: {_P_SURF};"},
                         ])
                     )
