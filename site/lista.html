@@ -180,9 +180,29 @@ footer a:hover { color: var(--text); }
 <!-- HERO -->
 <section class="hero">
   <div class="hero-inner">
-    <div class="badge">Pré-lançamento</div>
+    <div class="badge">Lançamento oficial em 01/05</div>
     <h1>O Guido está chegando.<br><em>Garanta seu lugar.</em></h1>
-    <p>Estamos prestes a lançar oficialmente o Guido. Quem entrar na lista agora tem <strong>preço especial de pré-lançamento</strong> e é avisado em primeira mão quando abrirmos as inscrições.</p>
+    <p>No dia <strong>1º de maio</strong> o Guido lança oficialmente. Quem entrar na lista agora tem <strong>preço especial de pré-lançamento</strong> e é avisado em primeira mão.</p>
+
+    <!-- Countdown -->
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:2rem;max-width:440px;margin-left:auto;margin-right:auto;">
+      <div style="flex:1;background:var(--night);border:1px solid var(--border);border-radius:12px;padding:14px 8px;text-align:center;">
+        <div id="lcd-dias" style="font-family:var(--serif);font-size:2rem;color:var(--green);line-height:1;margin-bottom:6px;">—</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;">dias</div>
+      </div>
+      <div style="flex:1;background:var(--night);border:1px solid var(--border);border-radius:12px;padding:14px 8px;text-align:center;">
+        <div id="lcd-horas" style="font-family:var(--serif);font-size:2rem;color:var(--green);line-height:1;margin-bottom:6px;">—</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;">horas</div>
+      </div>
+      <div style="flex:1;background:var(--night);border:1px solid var(--border);border-radius:12px;padding:14px 8px;text-align:center;">
+        <div id="lcd-min" style="font-family:var(--serif);font-size:2rem;color:var(--green);line-height:1;margin-bottom:6px;">—</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;">min</div>
+      </div>
+      <div style="flex:1;background:var(--night);border:1px solid var(--border);border-radius:12px;padding:14px 8px;text-align:center;">
+        <div id="lcd-seg" style="font-family:var(--serif);font-size:2rem;color:var(--green);line-height:1;margin-bottom:6px;">—</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;">seg</div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -243,6 +263,24 @@ footer a:hover { color: var(--text); }
 </footer>
 
 <script>
+// Countdown pro dia 01/05 às 09:00 (horário de Brasília)
+(function() {
+  const alvo = new Date('2026-05-01T09:00:00-03:00');
+  function tick() {
+    let diff = Math.max(0, alvo - new Date());
+    const dias = Math.floor(diff / 86400000);
+    const horas = Math.floor((diff / 3600000) % 24);
+    const min = Math.floor((diff / 60000) % 60);
+    const seg = Math.floor((diff / 1000) % 60);
+    document.getElementById('lcd-dias').textContent = String(dias).padStart(2, '0');
+    document.getElementById('lcd-horas').textContent = String(horas).padStart(2, '0');
+    document.getElementById('lcd-min').textContent = String(min).padStart(2, '0');
+    document.getElementById('lcd-seg').textContent = String(seg).padStart(2, '0');
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
 const form = document.getElementById('form-lista');
 const btn = document.getElementById('btn-submit');
 const msgOk = document.getElementById('msg-ok');

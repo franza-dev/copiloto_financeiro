@@ -468,6 +468,134 @@ footer {
 .hero-screen {
   animation: fadeUp 0.7s 0.2s ease both;
 }
+
+/* ── POPUP LISTA DE ESPERA ── */
+.popup-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.78); backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.25s ease;
+}
+.popup-overlay.ativo { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.popup-card {
+  position: relative;
+  max-width: 520px; width: 100%;
+  max-height: 94vh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 2rem 2rem 1.75rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.popup-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface2); color: var(--text2);
+  border: none; cursor: pointer;
+  font-size: 18px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.popup-close:hover { background: var(--green); color: #fff; }
+
+.popup-badge {
+  display: inline-block;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--green);
+  padding: 5px 12px; border: 1px solid var(--green);
+  border-radius: 20px; margin-bottom: 1rem;
+  background: rgba(29,158,117,0.08);
+}
+.popup-card h2 {
+  font-family: var(--font-serif, Georgia, serif);
+  font-weight: 400; font-size: 1.65rem; line-height: 1.2;
+  color: var(--text); margin-bottom: 0.5rem;
+}
+.popup-card h2 em { color: var(--green); font-style: italic; }
+.popup-card .popup-sub {
+  font-size: 14px; color: var(--text2); line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+
+/* Countdown */
+.countdown {
+  display: flex; gap: 8px; justify-content: center;
+  margin-bottom: 1.5rem;
+}
+.count-box {
+  flex: 1; max-width: 80px;
+  background: var(--night); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 6px;
+  text-align: center;
+}
+.count-num {
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1.6rem; color: var(--green); line-height: 1;
+  margin-bottom: 4px; font-weight: 400;
+}
+.count-label {
+  font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+
+/* Form */
+.popup-form .pg { margin-bottom: 0.85rem; }
+.popup-form label {
+  display: block; font-size: 12px; font-weight: 500;
+  color: var(--text); margin-bottom: 0.35rem;
+}
+.popup-form label .ob { color: var(--green); }
+.popup-form input, .popup-form textarea {
+  width: 100%; padding: 10px 12px;
+  background: var(--night); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px;
+  transition: border-color 0.15s; outline: none;
+}
+.popup-form input:focus, .popup-form textarea:focus { border-color: var(--green); }
+.popup-form input::placeholder, .popup-form textarea::placeholder { color: var(--text3); }
+.popup-form textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+
+.popup-btn {
+  width: 100%; background: var(--green); color: #fff;
+  padding: 12px 20px; border: none; border-radius: 10px;
+  font-family: var(--font-sans, system-ui, sans-serif); font-size: 15px; font-weight: 500;
+  cursor: pointer; transition: background 0.15s, transform 0.1s;
+  margin-top: 0.5rem;
+}
+.popup-btn:hover:not(:disabled) { background: var(--green-dk); transform: translateY(-1px); }
+.popup-btn:disabled { background: var(--text3); cursor: not-allowed; }
+.popup-micro { font-size: 11px; color: var(--text3); text-align: center; margin-top: 0.75rem; font-style: italic; }
+
+.popup-msg { padding: 10px 12px; border-radius: 8px; margin-bottom: 0.85rem; font-size: 13px; display: none; }
+.popup-msg.ativo { display: block; }
+.popup-msg.ok { background: rgba(29,158,117,0.12); border: 1px solid var(--green); color: var(--green-mid); }
+.popup-msg.erro { background: rgba(226,75,74,0.12); border: 1px solid #E24B4A; color: #F8B4B4; }
+
+/* Botão flutuante pra reabrir após fechar */
+.popup-reabrir {
+  position: fixed; bottom: 20px; right: 20px;
+  z-index: 9999; display: none;
+  background: var(--green); color: #fff;
+  padding: 12px 20px; border: none; border-radius: 50px;
+  font-family: var(--font-sans, system-ui, sans-serif); font-size: 13px; font-weight: 500;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(29,158,117,0.4);
+  transition: background 0.15s, transform 0.1s;
+}
+.popup-reabrir.ativo { display: block; }
+.popup-reabrir:hover { background: var(--green-dk); transform: translateY(-2px); }
+
+@media (max-width: 540px) {
+  .popup-card { padding: 1.5rem 1.25rem 1.25rem; }
+  .popup-card h2 { font-size: 1.35rem; }
+  .count-num { font-size: 1.3rem; }
+}
 </style>
 </head>
 <body>
@@ -814,6 +942,159 @@ footer {
     </div>
   </div>
 </footer>
+
+<!-- ── POP-UP LISTA DE ESPERA ── -->
+<div class="popup-overlay" id="popup-lista" role="dialog" aria-modal="true" aria-labelledby="popup-titulo">
+  <div class="popup-card">
+    <button class="popup-close" id="popup-fechar" aria-label="Fechar">✕</button>
+
+    <div class="popup-badge">Lançamento oficial em 01/05</div>
+    <h2 id="popup-titulo">Entre na lista e garanta<br><em>preço de pré-lançamento.</em></h2>
+    <p class="popup-sub">Quem entrar agora trava um valor especial e é avisado em primeira mão quando o Guido lançar oficialmente.</p>
+
+    <div class="countdown" id="countdown">
+      <div class="count-box"><div class="count-num" id="cd-dias">—</div><div class="count-label">dias</div></div>
+      <div class="count-box"><div class="count-num" id="cd-horas">—</div><div class="count-label">horas</div></div>
+      <div class="count-box"><div class="count-num" id="cd-min">—</div><div class="count-label">min</div></div>
+      <div class="count-box"><div class="count-num" id="cd-seg">—</div><div class="count-label">seg</div></div>
+    </div>
+
+    <div class="popup-msg ok" id="popup-msg-ok">✅ Entrou na lista! Vou te avisar assim que o Guido lançar.</div>
+    <div class="popup-msg erro" id="popup-msg-erro">Ops, algo deu errado. Tenta de novo em alguns segundos.</div>
+
+    <form class="popup-form" id="popup-form">
+      <div class="pg">
+        <label for="p-nome">Nome <span class="ob">*</span></label>
+        <input type="text" id="p-nome" required placeholder="Como você gosta de ser chamado?">
+      </div>
+      <div class="pg">
+        <label for="p-email">Email <span class="ob">*</span></label>
+        <input type="email" id="p-email" required placeholder="seu@email.com">
+      </div>
+      <div class="pg">
+        <label for="p-telefone">WhatsApp</label>
+        <input type="tel" id="p-telefone" placeholder="(11) 99999-9999">
+      </div>
+      <div class="pg">
+        <label for="p-desafio">Qual seu maior desafio financeiro hoje?</label>
+        <textarea id="p-desafio" placeholder="Ex: misturo grana da casa com a do negócio, perco controle no cartão…"></textarea>
+      </div>
+      <button type="submit" class="popup-btn" id="popup-btn">Quero entrar na lista</button>
+      <p class="popup-micro">Sem spam. Só um aviso quando o Guido lançar.</p>
+    </form>
+  </div>
+</div>
+
+<!-- Botão flutuante pra reabrir o popup -->
+<button class="popup-reabrir" id="popup-reabrir">🎁 Lista de espera</button>
+
+<script>
+(function() {
+  const overlay = document.getElementById('popup-lista');
+  const btnFechar = document.getElementById('popup-fechar');
+  const btnReabrir = document.getElementById('popup-reabrir');
+  const form = document.getElementById('popup-form');
+  const btnSubmit = document.getElementById('popup-btn');
+  const msgOk = document.getElementById('popup-msg-ok');
+  const msgErro = document.getElementById('popup-msg-erro');
+
+  // Mostrar popup — só uma vez por sessão de navegação
+  const JA_VIU = 'guido_popup_visto';
+  const JA_INSCRITO = 'guido_popup_inscrito';
+
+  function abrir() {
+    overlay.classList.add('ativo');
+    btnReabrir.classList.remove('ativo');
+    document.body.style.overflow = 'hidden';
+  }
+  function fechar() {
+    overlay.classList.remove('ativo');
+    document.body.style.overflow = '';
+    sessionStorage.setItem(JA_VIU, '1');
+    // Se ainda não se inscreveu, mostra botão flutuante pra reabrir
+    if (!localStorage.getItem(JA_INSCRITO)) {
+      btnReabrir.classList.add('ativo');
+    }
+  }
+
+  btnFechar.addEventListener('click', fechar);
+  btnReabrir.addEventListener('click', abrir);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) fechar(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('ativo')) fechar(); });
+
+  // Decide se abre automaticamente
+  if (!sessionStorage.getItem(JA_VIU) && !localStorage.getItem(JA_INSCRITO)) {
+    // Pequeno delay pra página carregar antes
+    setTimeout(abrir, 1500);
+  } else if (!localStorage.getItem(JA_INSCRITO)) {
+    // Já viu nessa sessão mas não se inscreveu — mostra botão flutuante
+    btnReabrir.classList.add('ativo');
+  }
+
+  // Countdown pro dia 01/05 às 09:00 (horário de Brasília = UTC-3)
+  const alvo = new Date('2026-05-01T09:00:00-03:00');
+  function atualizarCountdown() {
+    const agora = new Date();
+    let diff = alvo - agora;
+    if (diff < 0) diff = 0;
+    const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const horas = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const min = Math.floor((diff / (1000 * 60)) % 60);
+    const seg = Math.floor((diff / 1000) % 60);
+    document.getElementById('cd-dias').textContent = String(dias).padStart(2, '0');
+    document.getElementById('cd-horas').textContent = String(horas).padStart(2, '0');
+    document.getElementById('cd-min').textContent = String(min).padStart(2, '0');
+    document.getElementById('cd-seg').textContent = String(seg).padStart(2, '0');
+  }
+  atualizarCountdown();
+  setInterval(atualizarCountdown, 1000);
+
+  // Envio do form
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msgOk.classList.remove('ativo');
+    msgErro.classList.remove('ativo');
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Enviando...';
+
+    const payload = {
+      nome: document.getElementById('p-nome').value.trim(),
+      email: document.getElementById('p-email').value.trim(),
+      telefone: document.getElementById('p-telefone').value.trim(),
+      desafio: document.getElementById('p-desafio').value.trim(),
+    };
+
+    try {
+      const resp = await fetch('/api/lista/inscrever', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+      });
+      if (resp.ok) {
+        msgOk.classList.add('ativo');
+        form.reset();
+        btnSubmit.textContent = 'Entrou ✓';
+        localStorage.setItem(JA_INSCRITO, '1');
+        btnReabrir.classList.remove('ativo');
+        // Fecha automaticamente após 2.5s
+        setTimeout(fechar, 2500);
+      } else {
+        const data = await resp.json().catch(() => ({}));
+        msgErro.textContent = data.detail ? `Ops: ${data.detail}` : 'Ops, algo deu errado. Tenta de novo.';
+        msgErro.classList.add('ativo');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Quero entrar na lista';
+      }
+    } catch (err) {
+      console.error('Erro:', err);
+      msgErro.textContent = 'Não conseguimos enviar. Confere sua conexão e tenta de novo.';
+      msgErro.classList.add('ativo');
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Quero entrar na lista';
+    }
+  });
+})();
+</script>
 
 </body>
 </html>
