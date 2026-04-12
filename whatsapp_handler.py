@@ -38,19 +38,41 @@ def _normalizar_telefone(telefone: str) -> str:
     return apenas_digitos
 
 
-def _enviar_whatsapp(telefone: str, texto: str):
-    """Envia mensagem de texto via Evolution API (compatível com v1.8+ e v2.3+)."""
+def _reconectar_evolution() -> bool:
+    """Reinicia a instância da Evolution API. Retorna True se OK."""
+    try:
+        url = f"{EVOLUTION_API_URL}/instance/restart/{EVOLUTION_INSTANCE}"
+        headers = {"apikey": EVOLUTION_API_KEY}
+        resp = http_requests.post(url, headers=headers, timeout=15)
+        print(f"[WhatsApp] Restart da instância: {resp.status_code}")
+        import time
+        time.sleep(8)  # aguarda reconexão
+        return resp.status_code < 400
+    except Exception as e:
+        print(f"[WhatsApp] Erro ao reconectar: {e}")
+        return False
+
+
+def _enviar_whatsapp(telefone: str, texto: str, _retry: bool = False):
+    """Envia mensagem via Evolution API. Se detectar 'Connection Closed',
+    reinicia a instância automaticamente e tenta de novo (1 retry)."""
     try:
         url = f"{EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}"
-        payload = {
-            "number": telefone,
-            "text": texto,
-        }
+        payload = {"number": telefone, "text": texto}
         headers = {"apikey": EVOLUTION_API_KEY, "Content-Type": "application/json"}
         resp = http_requests.post(url, json=payload, headers=headers, timeout=10)
         print(f"[WhatsApp] Enviado pra {telefone}: {resp.status_code}")
+
         if resp.status_code >= 400:
-            print(f"[WhatsApp] ERRO resposta: {resp.text[:500]}")
+            corpo_erro = resp.text[:500]
+            print(f"[WhatsApp] ERRO resposta: {corpo_erro}")
+
+            # Self-healing: se a conexão caiu silenciosamente, reinicia a
+            # instância e tenta uma vez. Só tenta uma vez pra não entrar em loop.
+            if not _retry and "Connection Closed" in corpo_erro:
+                print(f"[WhatsApp] Detectada conexão caída — tentando auto-reconexão...")
+                if _reconectar_evolution():
+                    _enviar_whatsapp(telefone, texto, _retry=True)
     except Exception as e:
         print(f"[WhatsApp] Erro ao enviar mensagem: {e}")
 
