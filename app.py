@@ -85,9 +85,9 @@ else:
     _P_TEXT = "#F1F5F9"
     _P_TEXT2 = "#94A3B8"
 
-st.markdown(f"""
+st.markdown("""
     <style>
-        {_CSS_VARS}
+""" + _CSS_VARS + """
 
         html, body, [class*="css"], .stApp {
             font-family: var(--guido-font-sans) !important;
