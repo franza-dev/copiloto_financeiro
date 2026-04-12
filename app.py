@@ -749,7 +749,7 @@ LISTA_BASE = [
 # Usa st.radio em vez de st.tabs porque o radio persiste a seleção no
 # session_state entre reruns — o st.tabs reseta pra primeira aba sempre
 # que um st.rerun() dispara (bug clássico do Streamlit).
-_ABAS = ["🌱 Painel", "📊 Dashboards", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas", "👤 Minha Conta"]
+_ABAS = ["🌱 Painel", "📊 Dashboards", "💰 Fluxo de Caixa", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas", "👤 Minha Conta"]
 _aba_selecionada = st.radio("Navegação", _ABAS, horizontal=True, key="aba_ativa", label_visibility="collapsed")
 
 # ==========================================
@@ -1470,6 +1470,144 @@ if _aba_selecionada == "📊 Dashboards":
                 st.info("Ainda não tem dados pra mostrar nos dashboards. Manda um gasto pro Guido!")
     except Exception as e:
         st.error(f"Erro ao carregar dashboards: {e}")
+
+# ==========================================
+# ABA: FLUXO DE CAIXA
+# ==========================================
+if _aba_selecionada == "💰 Fluxo de Caixa":
+    st.markdown("### 💰 Fluxo de Caixa")
+    st.caption("Visão dia a dia do dinheiro entrando e saindo — estilo planilha do Excel.")
+
+    try:
+        # Força filtro mensal (fluxo de caixa não faz sentido no "ano todo")
+        if not filtro_mes:
+            st.info("Selecione um mês na barra lateral pra visualizar o fluxo de caixa diário.")
+        else:
+            from calendar import monthrange
+            _fc_params = {"usuario_id": USUARIO_ID, "ano": filtro_ano, "mes": filtro_mes}
+            req_fc = requests.get(f"{API_URL}/transacoes/historico", params=_fc_params)
+            if req_fc.status_code == 200:
+                dados_fc = req_fc.json()
+                if dados_fc:
+                    df_fc = pd.DataFrame(dados_fc)
+                    # Filtra transferências internas
+                    df_fc = df_fc[~df_fc['categoria'].str.contains('Transferência Interna', case=False, na=False)]
+
+                    # Extrai dia do mês
+                    df_fc['dia'] = pd.to_datetime(df_fc['data'], errors='coerce').dt.day
+                    df_fc = df_fc.dropna(subset=['dia'])
+                    df_fc['dia'] = df_fc['dia'].astype(int)
+
+                    _, ultimo_dia = monthrange(filtro_ano, filtro_mes)
+                    todos_dias = list(range(1, ultimo_dia + 1))
+
+                    # Separa receitas e despesas
+                    df_rec = df_fc[df_fc['valor'] > 0].copy()
+                    df_desp = df_fc[df_fc['valor'] < 0].copy()
+
+                    # Pivô: categorias × dias
+                    pivot_rec = df_rec.pivot_table(index='categoria', columns='dia', values='valor', aggfunc='sum', fill_value=0)
+                    pivot_desp = df_desp.pivot_table(index='categoria', columns='dia', values='valor', aggfunc='sum', fill_value=0)
+
+                    # Garante que todos os dias existem como colunas
+                    for d in todos_dias:
+                        if d not in pivot_rec.columns:
+                            pivot_rec[d] = 0.0
+                        if d not in pivot_desp.columns:
+                            pivot_desp[d] = 0.0
+                    pivot_rec = pivot_rec[sorted(pivot_rec.columns)]
+                    pivot_desp = pivot_desp[sorted(pivot_desp.columns)]
+
+                    # Adiciona coluna Total
+                    pivot_rec['Total'] = pivot_rec[todos_dias].sum(axis=1)
+                    pivot_desp['Total'] = pivot_desp[todos_dias].sum(axis=1)
+                    colunas_final = todos_dias + ['Total']
+
+                    # Subtotais por dia
+                    sub_rec = pivot_rec[colunas_final].sum().to_frame().T
+                    sub_rec.index = ['TOTAL RECEITAS']
+                    sub_desp = pivot_desp[colunas_final].sum().to_frame().T
+                    sub_desp.index = ['TOTAL DESPESAS']
+
+                    # Saldo diário e acumulado
+                    saldo_dia = sub_rec[colunas_final].iloc[0] + sub_desp[colunas_final].iloc[0]
+                    saldo_acum = saldo_dia[todos_dias].cumsum()
+                    saldo_acum['Total'] = saldo_dia['Total']
+
+                    saldo_dia_df = saldo_dia.to_frame().T
+                    saldo_dia_df.index = ['SALDO DO DIA']
+                    saldo_acum_df = saldo_acum.to_frame().T
+                    saldo_acum_df.index = ['SALDO ACUMULADO']
+
+                    # Monta tabela final
+                    tabela = pd.concat([
+                        pivot_rec[colunas_final],
+                        sub_rec,
+                        pivot_desp[colunas_final].abs() * -1,  # mantém negativo pra clareza
+                        sub_desp,
+                        saldo_dia_df,
+                        saldo_acum_df,
+                    ])
+
+                    # Renomeia colunas: dia → "01", "02", etc.
+                    col_labels = {d: f"{d:02d}" for d in todos_dias}
+                    col_labels['Total'] = 'Total'
+                    tabela = tabela.rename(columns=col_labels)
+
+                    # Remove colunas (dias) zerados em TODAS as linhas pra economizar espaço
+                    dias_col = [f"{d:02d}" for d in todos_dias]
+                    dias_com_dados = [c for c in dias_col if (tabela[c] != 0).any()]
+                    tabela_exibir = tabela[dias_com_dados + ['Total']]
+
+                    # Formata valores
+                    def _fmt_valor(v):
+                        if v == 0 or pd.isna(v):
+                            return ""
+                        return f"R$ {v:,.2f}"
+
+                    def _cor_valor(v):
+                        if isinstance(v, str) or v == 0 or pd.isna(v):
+                            return ""
+                        if v > 0:
+                            return "color: #1D9E75; font-weight: 500;"
+                        return "color: #E24B4A; font-weight: 500;"
+
+                    # Estiliza
+                    styled = tabela_exibir.style.format(_fmt_valor).applymap(_cor_valor)
+
+                    # Destaca linhas de totais e saldo
+                    def _destaca_linha(row):
+                        nome = row.name
+                        if nome in ('TOTAL RECEITAS', 'TOTAL DESPESAS', 'SALDO DO DIA', 'SALDO ACUMULADO'):
+                            return [f"background-color: {_P_SURF}; font-weight: 700;"] * len(row)
+                        return [""] * len(row)
+
+                    styled = styled.apply(_destaca_linha, axis=1)
+
+                    st.dataframe(styled, use_container_width=True, height=min(800, (len(tabela) + 1) * 38))
+
+                    # KPIs resumo
+                    col_k1, col_k2, col_k3 = st.columns(3)
+                    total_rec = float(sub_rec['Total'].iloc[0])
+                    total_desp = float(sub_desp['Total'].iloc[0])
+                    saldo_final = total_rec + total_desp
+                    col_k1.metric("Receitas", f"R$ {total_rec:,.2f}")
+                    col_k2.metric("Despesas", f"R$ {abs(total_desp):,.2f}")
+                    col_k3.metric("Saldo", f"R$ {saldo_final:,.2f}", delta=f"{'positivo' if saldo_final >= 0 else 'negativo'}")
+
+                    # Download
+                    st.download_button(
+                        label="📥 Baixar fluxo de caixa (.csv)",
+                        data=tabela_exibir.to_csv().encode('utf-8'),
+                        file_name=f"guido_fluxo_caixa_{filtro_ano}_{filtro_mes:02d}.csv",
+                        mime="text/csv",
+                    )
+                else:
+                    st.info("Sem lançamentos nesse período. Manda um gasto pro Guido!")
+            else:
+                st.warning("Não consegui carregar os dados.")
+    except Exception as e:
+        st.error(f"Erro ao montar fluxo de caixa: {e}")
 
 # ==========================================
 # ABA: EXTRATO
