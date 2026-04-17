@@ -440,17 +440,11 @@ def _gerar_resumo(db: Session, usuario_id: int) -> str:
 
 
 def _categorias_para_ia(db: Session) -> list:
-    """Monta lista de categorias (base + personalizadas) pra injetar no prompt."""
-    from main import LISTA_CATEGORIAS_BASE
-    cats = list(LISTA_CATEGORIAS_BASE)
+    """Monta lista de categorias do banco pra injetar no prompt da IA."""
     try:
-        personalizadas = db.query(models.Categoria).all()
-        for c in personalizadas:
-            if c.nome not in cats:
-                cats.append(c.nome)
+        return sorted([c.nome for c in db.query(models.Categoria).all()])
     except Exception:
-        pass
-    return sorted(cats)
+        return ["A Classificar"]
 
 
 def _processar_lancamento(texto: str, db: Session, usuario_id: int) -> str:
