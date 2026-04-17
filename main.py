@@ -60,6 +60,33 @@ with database.engine.connect() as _conn:
     except Exception:
         _conn.rollback()
 
+# Seed das categorias iniciais — só roda se a tabela estiver vazia.
+# A partir daí, todas as categorias (inclusive essas) são editáveis pela UI.
+_CATEGORIAS_INICIAIS = [
+    ("Vendas / Receitas", "PJ"),
+    ("Prestação de Serviços", "PJ"),
+    ("Transferência Interna", "Ambos"),
+    ("Alimentação", "PF"),
+    ("Transporte e Combustível", "Ambos"),
+    ("Impostos (DAS, etc)", "PJ"),
+    ("Ferramentas e Software", "PJ"),
+    ("Tarifas Bancárias", "Ambos"),
+    ("Pró-Labore / Salário", "PF"),
+    ("Equipamentos", "PJ"),
+    ("A Classificar", "Ambos"),
+]
+with database.engine.connect() as _conn:
+    try:
+        from sqlalchemy.orm import Session as _Session
+        with _Session(database.engine) as _sess:
+            for nome, tipo in _CATEGORIAS_INICIAIS:
+                ja_existe = _sess.query(models.Categoria).filter(models.Categoria.nome == nome).first()
+                if not ja_existe:
+                    _sess.add(models.Categoria(nome=nome, tipo=tipo))
+            _sess.commit()
+    except Exception as _e:
+        print(f"[seed categorias] erro (ignorado): {_e}")
+
 # ==========================================
 # CARTÃO DE CRÉDITO — cálculo de data de caixa
 # ==========================================
@@ -207,6 +234,10 @@ class AtualizarPerfil(BaseModel):
 class CategoriaCreate(BaseModel):
     nome: str
     tipo: str = "Ambos"
+
+class CategoriaUpdate(BaseModel):
+    nome: Optional[str] = None
+    tipo: Optional[str] = None
 
 # --- 1. ROTAS DE AUTENTICAÇÃO ---
 
@@ -636,42 +667,88 @@ def listar_categorias(db: Session = Depends(database.get_db)):
 
 @app.post("/categorias")
 def criar_categoria(cat: CategoriaCreate, db: Session = Depends(database.get_db)):
-    if db.query(models.Categoria).filter(models.Categoria.nome == cat.nome).first():
+    nome = cat.nome.strip()
+    if not nome:
+        raise HTTPException(status_code=400, detail="Nome obrigatório")
+    if db.query(models.Categoria).filter(models.Categoria.nome == nome).first():
         raise HTTPException(status_code=400, detail="Categoria já existe")
-    nova = models.Categoria(nome=cat.nome, tipo=cat.tipo)
+    tipo = cat.tipo if cat.tipo in ("PF", "PJ", "Ambos") else "Ambos"
+    nova = models.Categoria(nome=nome, tipo=tipo)
     db.add(nova)
     db.commit()
     db.refresh(nova)
     return nova
 
+@app.put("/categorias/{categoria_id}")
+def editar_categoria(categoria_id: int, dados: CategoriaUpdate, db: Session = Depends(database.get_db)):
+    """Edita nome/tipo de uma categoria. Se renomear, propaga pras transações."""
+    cat = db.query(models.Categoria).filter(models.Categoria.id == categoria_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Categoria não encontrada")
+
+    # Proteção: não deixa renomear "A Classificar" (usado como sentinel)
+    if cat.nome == "A Classificar" and dados.nome and dados.nome.strip() != "A Classificar":
+        raise HTTPException(status_code=400, detail="Não dá pra renomear 'A Classificar' — é usada pelo sistema como destino da quarentena")
+
+    nome_antigo = cat.nome
+    if dados.nome is not None:
+        nome_novo = dados.nome.strip()
+        if not nome_novo:
+            raise HTTPException(status_code=400, detail="Nome não pode ser vazio")
+        if nome_novo != nome_antigo:
+            ja_existe = db.query(models.Categoria).filter(
+                models.Categoria.nome == nome_novo,
+                models.Categoria.id != categoria_id,
+            ).first()
+            if ja_existe:
+                raise HTTPException(status_code=400, detail=f"Já existe categoria '{nome_novo}'")
+            cat.nome = nome_novo
+            # Propaga renomeação pras transações que usam essa categoria
+            db.query(models.Transacao).filter(models.Transacao.categoria == nome_antigo).update(
+                {"categoria": nome_novo}, synchronize_session=False,
+            )
+            # Propaga também pros tetos
+            db.query(models.LimiteCategoria).filter(models.LimiteCategoria.categoria == nome_antigo).update(
+                {"categoria": nome_novo}, synchronize_session=False,
+            )
+
+    if dados.tipo is not None and dados.tipo in ("PF", "PJ", "Ambos"):
+        cat.tipo = dados.tipo
+
+    db.commit()
+    db.refresh(cat)
+    return cat
+
 @app.delete("/categorias/{categoria_id}")
 def deletar_categoria(categoria_id: int, db: Session = Depends(database.get_db)):
+    """Deleta categoria. Reatribui transações dessa categoria pra 'A Classificar'."""
     cat = db.query(models.Categoria).filter(models.Categoria.id == categoria_id).first()
-    if cat:
-        db.delete(cat)
-        db.commit()
+    if not cat:
+        return {"mensagem": "Categoria não encontrada"}
+
+    # Proteção: não deixa deletar "A Classificar" (usado como sentinel pela quarentena)
+    if cat.nome == "A Classificar":
+        raise HTTPException(status_code=400, detail="Não dá pra deletar 'A Classificar' — é usada pelo sistema")
+
+    nome = cat.nome
+    # Reatribui transações dessa categoria pra "A Classificar"
+    db.query(models.Transacao).filter(models.Transacao.categoria == nome).update(
+        {"categoria": "A Classificar"}, synchronize_session=False,
+    )
+    # Remove tetos vinculados
+    db.query(models.LimiteCategoria).filter(models.LimiteCategoria.categoria == nome).delete(synchronize_session=False)
+    db.delete(cat)
+    db.commit()
     return {"mensagem": "Categoria removida"}
 
 # --- 3. O CORAÇÃO: INTELIGÊNCIA ARTIFICIAL (TEXTO E ÁUDIO) ---
 
-LISTA_CATEGORIAS_BASE = [
-    "Vendas / Receitas", "Prestação de Serviços", "Transferência Interna",
-    "Alimentação", "Transporte e Combustível", "Impostos (DAS, etc)",
-    "Ferramentas e Software", "Tarifas Bancárias", "Pró-Labore / Salário",
-    "Equipamentos", "A Classificar"
-]
-
 def _categorias_para_ia(db: Session) -> List[str]:
-    """Monta lista completa de categorias (base + personalizadas) pra injetar no prompt."""
-    cats = list(LISTA_CATEGORIAS_BASE)
+    """Monta lista de categorias do banco pra injetar no prompt da IA."""
     try:
-        personalizadas = db.query(models.Categoria).all()
-        for c in personalizadas:
-            if c.nome not in cats:
-                cats.append(c.nome)
+        return sorted([c.nome for c in db.query(models.Categoria).all()])
     except Exception:
-        pass
-    return sorted(cats)
+        return ["A Classificar"]
 
 
 def _contas_do_usuario_para_ia(db: Session, usuario_id: int) -> List[dict]:

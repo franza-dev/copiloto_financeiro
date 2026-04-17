@@ -768,12 +768,15 @@ try:
 except:
     pass
 
-LISTA_BASE = [
-    "Vendas / Receitas", "Prestação de Serviços", "Transferência Interna",
-    "Alimentação", "Transporte e Combustível", "Impostos (DAS, etc)",
-    "Ferramentas e Software", "Tarifas Bancárias", "Pró-Labore / Salário",
-    "Equipamentos", "A Classificar"
-]
+# Lista de categorias — vem 100% do banco (não há mais "padrão" hardcoded).
+# Fallback mínimo só pra evitar UI quebrada se a API falhar.
+LISTA_BASE = ["A Classificar"]
+try:
+    _req_cats_init = requests.get(f"{API_URL}/categorias")
+    if _req_cats_init.status_code == 200:
+        LISTA_BASE = sorted({c['nome'] for c in _req_cats_init.json()}) or ["A Classificar"]
+except Exception:
+    pass
 
 # --- NAVEGAÇÃO POR ABAS ---
 # Usa st.radio em vez de st.tabs porque o radio persiste a seleção no
@@ -2157,6 +2160,7 @@ if _aba_selecionada == "📂 Categorias & Metas":
     col_esq, col_dir = st.columns(2)
 
     with col_esq:
+        # ── Nova categoria ──
         st.markdown("#### ➕ Nova categoria")
         with st.form("form_nova_categoria", clear_on_submit=True):
             nome_cat_new = st.text_input("Nome", placeholder="Ex: Saúde e bem-estar")
@@ -2177,28 +2181,99 @@ if _aba_selecionada == "📂 Categorias & Metas":
                     st.warning("Digita um nome pra categoria.")
 
         st.divider()
-        st.markdown("#### 🗂️ Categorias personalizadas")
+
+        # ── Tabela editável com todas as categorias ──
+        st.markdown("#### 🗂️ Todas as categorias")
+        st.caption("Clica numa célula pra editar. Marca o checkbox e clica em excluir pra remover.")
         try:
             req_cats_page = requests.get(f"{API_URL}/categorias")
             if req_cats_page.status_code == 200:
                 cats_lista = req_cats_page.json()
                 if cats_lista:
-                    mapa_cat_inv = {"Ambos": "🏠🏢", "PJ": "🏢", "PF": "🏠"}
-                    for cat in cats_lista:
-                        c_nome, c_tipo, c_del = st.columns([3, 1, 1])
-                        c_nome.write(f"**{cat['nome']}**")
-                        c_tipo.caption(mapa_cat_inv.get(cat['tipo'], cat['tipo']))
-                        if c_del.button("🗑️", key=f"del_cat_{cat['id']}", help="Remover"):
-                            if requests.delete(f"{API_URL}/categorias/{cat['id']}").status_code == 200:
-                                st.rerun()
-                else:
-                    st.info("Ainda não tem categoria personalizada.")
-        except:
-            st.error("Erro ao carregar categorias.")
+                    _CAT_TIPO_DISPLAY = {"PF": "🏠 Casa", "PJ": "🏢 Negócio", "Ambos": "🏠🏢 Ambos"}
+                    _CAT_TIPO_REVERSE = {v: k for k, v in _CAT_TIPO_DISPLAY.items()}
+                    _CAT_TIPO_OPCOES = list(_CAT_TIPO_DISPLAY.values())
 
-        with st.expander("Ver categorias padrão"):
-            for cat in sorted(LISTA_BASE):
-                st.write(f"• {cat}")
+                    df_cats = pd.DataFrame(cats_lista)
+                    df_cats["tipo"] = df_cats["tipo"].map(_CAT_TIPO_DISPLAY).fillna(df_cats["tipo"])
+                    df_cats.insert(0, "🗑️", False)
+
+                    _cats_original = df_cats.copy()
+
+                    edited_cats = st.data_editor(
+                        df_cats[["🗑️", "id", "nome", "tipo"]],
+                        use_container_width=True,
+                        hide_index=True,
+                        disabled=["id"],
+                        column_config={
+                            "🗑️": st.column_config.CheckboxColumn("🗑️", default=False, width="small"),
+                            "id": st.column_config.NumberColumn("ID", width="small"),
+                            "nome": st.column_config.TextColumn("Nome", width="medium"),
+                            "tipo": st.column_config.SelectboxColumn("Vale pra", options=_CAT_TIPO_OPCOES, width="medium"),
+                        },
+                        key="editor_categorias",
+                    )
+
+                    col_salvar_cat, col_excluir_cat = st.columns(2)
+
+                    with col_salvar_cat:
+                        if st.button("💾 Salvar alterações", type="primary", key="btn_salvar_cats"):
+                            alterados = 0
+                            erros = []
+                            for idx in edited_cats.index:
+                                if edited_cats.at[idx, "🗑️"]:
+                                    continue
+                                nome_novo = str(edited_cats.at[idx, "nome"]).strip()
+                                tipo_label_novo = str(edited_cats.at[idx, "tipo"])
+                                tipo_novo = _CAT_TIPO_REVERSE.get(tipo_label_novo, tipo_label_novo)
+                                nome_antigo = str(_cats_original.at[idx, "nome"])
+                                tipo_label_antigo = str(_cats_original.at[idx, "tipo"])
+                                if nome_novo != nome_antigo or tipo_label_novo != tipo_label_antigo:
+                                    cat_id = int(edited_cats.at[idx, "id"])
+                                    res_ed = requests.put(
+                                        f"{API_URL}/categorias/{cat_id}",
+                                        json={"nome": nome_novo, "tipo": tipo_novo},
+                                    )
+                                    if res_ed.status_code == 200:
+                                        alterados += 1
+                                    else:
+                                        try:
+                                            det = res_ed.json().get("detail", "")
+                                        except Exception:
+                                            det = ""
+                                        erros.append(f"#{cat_id}: {det or 'erro'}")
+                            if alterados > 0:
+                                st.success(f"{alterados} categoria(s) atualizada(s).")
+                            for e in erros:
+                                st.warning(e)
+                            if alterados or not erros:
+                                st.rerun()
+
+                    with col_excluir_cat:
+                        sel_cats = edited_cats[edited_cats["🗑️"] == True]
+                        if not sel_cats.empty:
+                            if st.button(f"🗑️ Excluir {len(sel_cats)} categoria(s)", key="btn_excluir_cats"):
+                                erros_del = []
+                                for _, row in sel_cats.iterrows():
+                                    res_del = requests.delete(f"{API_URL}/categorias/{int(row['id'])}")
+                                    if res_del.status_code != 200:
+                                        try:
+                                            det = res_del.json().get("detail", "")
+                                        except Exception:
+                                            det = ""
+                                        erros_del.append(f"{row['nome']}: {det or 'erro'}")
+                                if not erros_del:
+                                    st.success("Excluída(s).")
+                                else:
+                                    for e in erros_del:
+                                        st.warning(e)
+                                st.rerun()
+
+                    st.caption("ℹ️ A categoria \"A Classificar\" não pode ser editada nem removida — o sistema a usa pra quarentena.")
+                else:
+                    st.info("Nenhuma categoria cadastrada.")
+        except Exception:
+            st.error("Erro ao carregar categorias.")
 
     with col_dir:
         st.markdown("#### 🎯 Teto de gastos")
