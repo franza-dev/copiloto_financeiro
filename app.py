@@ -47,6 +47,14 @@ API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
 cookie_manager = stx.CookieManager()
 
+# Validade dos cookies de sessão — 30 dias.
+# Sem expires_at explícito, extra_streamlit_components grava como session
+# cookie inconsistente (varia por browser e contexto). Com data explícita,
+# persiste de forma confiável entre F5/reabrir aba.
+from datetime import datetime as _dt, timedelta as _td
+def _cookie_expires():
+    return _dt.now() + _td(days=30)
+
 # ==========================================
 # IDENTIDADE VISUAL GUIDO
 # Paleta verde-noite, Georgia serif, system-ui sans
@@ -588,8 +596,13 @@ if "usuario_id" not in st.session_state:
                             u = res.json()
                             st.session_state.usuario_id   = u["id"]
                             st.session_state.usuario_nome = u["nome"]
-                            cookie_manager.set("usuario_id",   str(u["id"]),  key="set_id_login")
-                            cookie_manager.set("usuario_nome", u["nome"],     key="set_nome_login")
+                            _exp = _cookie_expires()
+                            cookie_manager.set("usuario_id",   str(u["id"]),  expires_at=_exp, key="set_id_login")
+                            cookie_manager.set("usuario_nome", u["nome"],     expires_at=_exp, key="set_nome_login")
+                            # Pequeno delay pra dar tempo do JS do componente persistir o cookie
+                            # antes do st.rerun() interromper a execução
+                            import time as _time_login
+                            _time_login.sleep(0.5)
                             st.rerun()
                         elif res.status_code == 401:
                             st.session_state.auth_msg = {"tipo": "erro", "texto": "E-mail ou senha incorretos."}
@@ -644,8 +657,11 @@ if "usuario_id" not in st.session_state:
                                 u = res.json()
                                 st.session_state.usuario_id   = u["id"]
                                 st.session_state.usuario_nome = u["nome"]
-                                cookie_manager.set("usuario_id",   str(u["id"]), key="set_id_reg")
-                                cookie_manager.set("usuario_nome", u["nome"],    key="set_nome_reg")
+                                _exp_r = _cookie_expires()
+                                cookie_manager.set("usuario_id",   str(u["id"]), expires_at=_exp_r, key="set_id_reg")
+                                cookie_manager.set("usuario_nome", u["nome"],    expires_at=_exp_r, key="set_nome_reg")
+                                import time as _time_reg
+                                _time_reg.sleep(0.5)
                                 st.rerun()
                             elif res.status_code == 400:
                                 try:
