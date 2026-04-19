@@ -2437,7 +2437,7 @@ if _aba_selecionada == "💬 Conversar":
 
     # Mensagem inicial se vazio
     if not historico:
-        with st.chat_message("assistant", avatar="🤓"):
+        with st.chat_message("assistant", avatar="https://chamaoguido.com/guido-profile.png"):
             if modo == "suporte":
                 st.write("Oi! Como posso te ajudar com o sistema? Pode perguntar sobre qualquer aba, importação de CSV, categorias, tetos, cartão de crédito, WhatsApp...")
             else:
@@ -2458,7 +2458,7 @@ if _aba_selecionada == "💬 Conversar":
             st.write(pergunta)
 
         # Chama o backend
-        with st.chat_message("assistant", avatar="🤓"):
+        with st.chat_message("assistant", avatar="https://chamaoguido.com/guido-profile.png"):
             with st.spinner("Pensando..."):
                 try:
                     res_chat = requests.post(
