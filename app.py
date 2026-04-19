@@ -798,7 +798,7 @@ except Exception:
 # Usa st.radio em vez de st.tabs porque o radio persiste a seleção no
 # session_state entre reruns — o st.tabs reseta pra primeira aba sempre
 # que um st.rerun() dispara (bug clássico do Streamlit).
-_ABAS = ["🌱 Painel", "📊 Dashboards", "💰 Fluxo de Caixa", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas", "👤 Minha Conta"]
+_ABAS = ["🌱 Painel", "📊 Dashboards", "💰 Fluxo de Caixa", "🧾 Histórico", "🏦 Contas", "📂 Categorias & Metas", "💬 Conversar", "👤 Minha Conta"]
 _aba_selecionada = st.radio("Navegação", _ABAS, horizontal=True, key="aba_ativa", label_visibility="collapsed")
 
 # ==========================================
@@ -2401,6 +2401,90 @@ if _aba_selecionada == "📂 Categorias & Metas":
                     st.info("Ainda não tem teto definido.")
         except:
             st.caption("Aguardando a API...")
+
+# ==========================================
+# ABA: CONVERSAR (Chat com Guido — Suporte ou Conselheiro)
+# ==========================================
+if _aba_selecionada == "💬 Conversar":
+    st.markdown("### 💬 Conversar com o Guido")
+    st.caption("Tira dúvida sobre o sistema (Suporte) ou peça conselhos financeiros (Conselheiro).")
+
+    # Toggle de modo
+    col_modo, _ = st.columns([2, 3])
+    with col_modo:
+        modo_label = st.radio(
+            "Modo",
+            ["🛠️ Suporte", "💡 Conselheiro"],
+            horizontal=True,
+            key="chat_modo",
+            help="Suporte: ajuda com o sistema. Conselheiro: insights financeiros baseados nos seus dados.",
+        )
+    modo = "suporte" if modo_label.startswith("🛠️") else "conselheiro"
+
+    # Histórico separado por modo (não mistura suporte com conselheiro)
+    historico_key = f"chat_historico_{modo}"
+    if historico_key not in st.session_state:
+        st.session_state[historico_key] = []
+
+    historico = st.session_state[historico_key]
+
+    # Botão limpar (alinhado à direita)
+    col_limpar1, col_limpar2 = st.columns([4, 1])
+    with col_limpar2:
+        if st.button("🧹 Limpar conversa", key=f"limpar_{modo}", use_container_width=True):
+            st.session_state[historico_key] = []
+            st.rerun()
+
+    # Mensagem inicial se vazio
+    if not historico:
+        with st.chat_message("assistant", avatar="🤓"):
+            if modo == "suporte":
+                st.write("Oi! Como posso te ajudar com o sistema? Pode perguntar sobre qualquer aba, importação de CSV, categorias, tetos, cartão de crédito, WhatsApp...")
+            else:
+                st.write("E aí! Tô aqui pra te ajudar a entender e melhorar suas finanças. Posso analisar seus gastos do mês, comentar sobre tetos, dar conselhos sobre o limite MEI, separação Casa/Negócio... O que você quer discutir?")
+
+    # Renderiza histórico
+    for msg in historico:
+        avatar = "🤓" if msg["role"] == "assistant" else None
+        with st.chat_message(msg["role"], avatar=avatar):
+            st.write(msg["content"])
+
+    # Input
+    pergunta = st.chat_input("Manda sua pergunta...")
+    if pergunta:
+        # Adiciona pergunta do usuário no histórico e renderiza
+        historico.append({"role": "user", "content": pergunta})
+        with st.chat_message("user"):
+            st.write(pergunta)
+
+        # Chama o backend
+        with st.chat_message("assistant", avatar="🤓"):
+            with st.spinner("Pensando..."):
+                try:
+                    res_chat = requests.post(
+                        f"{API_URL}/chat/",
+                        json={
+                            "usuario_id": USUARIO_ID,
+                            "modo": modo,
+                            "mensagem": pergunta,
+                            "historico": historico[:-1],  # tudo exceto a pergunta atual
+                        },
+                        timeout=30,
+                    )
+                    if res_chat.status_code == 200:
+                        resposta = res_chat.json().get("resposta", "Sem resposta.")
+                    else:
+                        try:
+                            det = res_chat.json().get("detail", "")
+                        except Exception:
+                            det = ""
+                        resposta = f"Ops, deu erro ({res_chat.status_code}): {det or 'tenta de novo em alguns segundos'}"
+                except Exception as e:
+                    resposta = f"Não consegui conectar ao Guido agora. Detalhe técnico: {e}"
+                st.write(resposta)
+                historico.append({"role": "assistant", "content": resposta})
+
+        st.session_state[historico_key] = historico
 
 # ==========================================
 # ABA 5: MINHA CONTA

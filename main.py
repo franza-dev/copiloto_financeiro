@@ -173,6 +173,10 @@ app.include_router(blog_router)
 from lista_espera_handler import router as lista_router
 app.include_router(lista_router)
 
+# Registra rotas do Chat (suporte + conselheiro dentro do app)
+from chat_handler import router as chat_router
+app.include_router(chat_router)
+
 # --- SCHEMAS (Envelopes Pydantic) ---
 class ConfirmacaoGasto(BaseModel):
     data: str
