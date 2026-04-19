@@ -1159,6 +1159,16 @@ if _aba_selecionada == "📊 Dashboards":
     with ctrl3:
         dash_visao = st.radio("Visão", ["Todos", "🏢 Negócio", "🏠 Casa"], horizontal=True, key="dash_visao")
 
+    # Multiplicador do teto pro período selecionado.
+    # Tetos são definidos como mensais; em "Ano todo" multiplicamos pelo nº de
+    # meses do período (até hoje no ano atual; 12 nos anos passados).
+    if dash_mes:
+        _mult_teto = 1
+    else:
+        from datetime import datetime as _now_dt_dash
+        _hoje_dash = _now_dt_dash.now()
+        _mult_teto = _hoje_dash.month if dash_ano == _hoje_dash.year else 12
+
     try:
         # Busca transações do ano inteiro (pra gráfico de linha) e do período selecionado
         _params_ano = {"usuario_id": USUARIO_ID, "ano": dash_ano}
@@ -1309,13 +1319,14 @@ if _aba_selecionada == "📊 Dashboards":
                                     name=origem, orientation='h', marker_color=cor,
                                     hovertemplate='%{y}<br>R$ %{x:,.2f}<extra>' + origem + '</extra>',
                                 ))
-                        # Marcadores de teto — só na linha da categoria correspondente
+                        # Marcadores de teto — só na linha da categoria correspondente.
+                        # Multiplica pelo nº de meses do período (1 se mês específico).
                         _teto_cats = []
                         _teto_vals = []
                         for cat, teto in tetos_dash.items():
                             if cat in gastos_cat.index:
                                 _teto_cats.append(cat)
-                                _teto_vals.append(teto)
+                                _teto_vals.append(teto * _mult_teto)
                         if _teto_cats:
                             fig_barras.add_trace(go.Scatter(
                                 y=_teto_cats, x=_teto_vals,
@@ -1363,10 +1374,14 @@ if _aba_selecionada == "📊 Dashboards":
                 # ── GRÁFICO 4: Progresso de tetos ────────────────
                 if tetos_dash:
                     st.divider()
-                    st.markdown("#### 🎯 Teto de gastos por categoria")
+                    if _mult_teto > 1:
+                        st.markdown(f"#### 🎯 Teto de gastos por categoria · acumulado de {_mult_teto} meses")
+                    else:
+                        st.markdown("#### 🎯 Teto de gastos por categoria")
                     for cat, teto in sorted(tetos_dash.items()):
+                        teto_periodo = teto * _mult_teto  # ajusta pro período
                         gasto = gastos_cat.get(cat, 0)
-                        pct = (gasto / teto * 100) if teto > 0 else 0
+                        pct = (gasto / teto_periodo * 100) if teto_periodo > 0 else 0
                         cor = "#1D9E75" if pct < 70 else "#F5A623" if pct < 90 else "#E24B4A"
                         alerta = "🔔 " if pct >= 80 else ""
                         tc1, tc2 = st.columns([3, 1])
@@ -1381,7 +1396,7 @@ if _aba_selecionada == "📊 Dashboards":
                         with tc2:
                             st.markdown(
                                 f"<div style='text-align:right;color:{cor};font-size:13px;'>"
-                                f"R$ {gasto:,.0f} / R$ {teto:,.0f}<br>"
+                                f"R$ {gasto:,.0f} / R$ {teto_periodo:,.0f}<br>"
                                 f"<span style='font-size:11px;'>{pct:.0f}%</span></div>",
                                 unsafe_allow_html=True,
                             )
